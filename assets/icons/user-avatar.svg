@@ -1,0 +1,11 @@
+<svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="36" cy="36" r="36" fill="url(#userGradient)"/>
+  <circle cx="36" cy="28" r="12" fill="white"/>
+  <path d="M16 58C16 48.0589 24.0589 40 34 40H38C47.9411 40 56 48.0589 56 58V60H16V58Z" fill="white"/>
+  <defs>
+    <linearGradient id="userGradient" x1="0" y1="0" x2="72" y2="72">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,11 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="50" fill="url(#creativeGradient)"/>
+  <path d="M45 70L50 50L30 45L50 40L55 20L60 40L80 45L60 50L65 70L60 50L45 70Z" fill="white"/>
+  <path d="M35 75L38 68L31 65L38 62L41 55L44 62L51 65L44 68L47 75L44 68L35 75Z" fill="white"/>
+  <defs>
+    <linearGradient id="creativeGradient" x1="0" y1="0" x2="120" y2="120">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#ef4444"/>
+    </linearGradient>
+  </defs>
+</svg>

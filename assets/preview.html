@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drasa AI - Asset Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .asset-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+        
+        .asset-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+        
+        .asset-card h3 {
+            margin: 15px 0 10px;
+            color: #1f2937;
+        }
+        
+        .asset-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        
+        .asset-card .size {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 10px;
+        }
+        
+        .format-toggle {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .format-toggle button {
+            padding: 12px 30px;
+            margin: 0 10px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .format-toggle button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .format-toggle button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .info {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .info h2 {
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+        
+        .info p {
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+        
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .warning h2 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .warning p {
+            color: #78350f;
+            line-height: 1.6;
+        }
+        
+        code {
+            background: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Drasa AI Asset Preview</h1>
+        
+        <div class="info">
+            <h2>📁 Asset Information</h2>
+            <p>
+                All SVG assets have been created and are ready for conversion to WebP format.
+                Use the conversion scripts provided to generate optimized WebP images.
+            </p>
+        </div>
+        
+        <div class="format-toggle">
+            <button class="active" onclick="showFormat('svg')">View SVG</button>
+            <button onclick="showFormat('webp')">View WebP</button>
+        </div>
+        
+        <div class="grid" id="svgGrid">
+            <div class="asset-card">
+                <img src="icons/logo.svg" alt="Logo">
+                <h3>Logo</h3>
+                <div class="size">128x128px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/welcome-icon.svg" alt="Welcome Icon">
+                <h3>Welcome Icon</h3>
+                <div class="size">240x240px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/user-avatar.svg" alt="User Avatar">
+                <h3>User Avatar</h3>
+                <div class="size">72x72px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/ai-avatar.svg" alt="AI Avatar">
+                <h3>AI Avatar</h3>
+                <div class="size">72x72px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/space.svg" alt="Space">
+                <h3>Space Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/creative.svg" alt="Creative">
+                <h3>Creative Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/learn.svg" alt="Learn">
+                <h3>Learn Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="icons/coding.svg" alt="Coding">
+                <h3>Coding Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+        </div>
+        
+        <div class="grid" id="webpGrid" style="display: none;">
+            <div class="asset-card">
+                <img src="images/logo.webp" alt="Logo" onerror="this.src='icons/logo.svg'; this.parentElement.classList.add('error')">
+                <h3>Logo</h3>
+                <div class="size">128x128px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/welcome-icon.webp" alt="Welcome Icon" onerror="this.src='icons/welcome-icon.svg'">
+                <h3>Welcome Icon</h3>
+                <div class="size">240x240px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/user-avatar.webp" alt="User Avatar" onerror="this.src='icons/user-avatar.svg'">
+                <h3>User Avatar</h3>
+                <div class="size">72x72px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/ai-avatar.webp" alt="AI Avatar" onerror="this.src='icons/ai-avatar.svg'">
+                <h3>AI Avatar</h3>
+                <div class="size">72x72px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/space.webp" alt="Space" onerror="this.src='icons/space.svg'">
+                <h3>Space Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/creative.webp" alt="Creative" onerror="this.src='icons/creative.svg'">
+                <h3>Creative Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/learn.webp" alt="Learn" onerror="this.src='icons/learn.svg'">
+                <h3>Learn Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+            
+            <div class="asset-card">
+                <img src="images/coding.webp" alt="Coding" onerror="this.src='icons/coding.svg'">
+                <h3>Coding Icon</h3>
+                <div class="size">120x120px</div>
+            </div>
+        </div>
+        
+        <div class="warning">
+            <h2>⚠️ WebP Conversion Required</h2>
+            <p>
+                To view WebP images, please run the conversion script first:<br>
+                <br>
+                <strong>Windows:</strong> Double-click <code>convert.bat</code><br>
+                <strong>PowerShell:</strong> Run <code>.\convert.ps1</code><br>
+                <strong>Node.js:</strong> Run <code>npm install</code> then <code>npm run convert</code>
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        function showFormat(format) {
+            const svgGrid = document.getElementById('svgGrid');
+            const webpGrid = document.getElementById('webpGrid');
+            const buttons = document.querySelectorAll('.format-toggle button');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (format === 'svg') {
+                svgGrid.style.display = 'grid';
+                webpGrid.style.display = 'none';
+                buttons[0].classList.add('active');
+            } else {
+                svgGrid.style.display = 'none';
+                webpGrid.style.display = 'grid';
+                buttons[1].classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "drasa-ai-assets",
+  "version": "1.0.0",
+  "description": "Asset conversion tools for Drasa AI",
+  "main": "convert.js",
+  "scripts": {
+    "convert": "node convert.js"
+  },
+  "dependencies": {
+    "sharp": "^0.33.1"
+  }
+}

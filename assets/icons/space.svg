@@ -1,0 +1,15 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="60" cy="60" r="50" fill="url(#spaceGradient)"/>
+  <circle cx="35" cy="45" r="3" fill="white"/>
+  <circle cx="80" cy="35" r="2" fill="white"/>
+  <circle cx="75" cy="75" r="2.5" fill="white"/>
+  <circle cx="40" cy="80" r="2" fill="white"/>
+  <circle cx="85" cy="55" r="1.5" fill="white"/>
+  <path d="M50 30L52 38L60 40L52 42L50 50L48 42L40 40L48 38L50 30Z" fill="white"/>
+  <defs>
+    <linearGradient id="spaceGradient" x1="0" y1="0" x2="120" y2="120">
+      <stop offset="0%" style="stop-color:#1e3a8a"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+</svg>
