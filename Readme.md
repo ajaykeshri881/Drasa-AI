@@ -23,17 +23,7 @@ This project focuses on creating a clean, Gemini-style chat interface using HTML
 - Gemini API  
 ## ⚠️ API Quota & Rate Limits
 
-Drasa AI uses the Gemini API, which has strict rate limits and quotas (e.g., 20 requests per minute for the free tier of gemini-2.5-flash). If you see errors like "quota exceeded" or "rate limit reached," you must wait before sending more requests, or upgrade your API plan. See:
-
-- [Gemini API Rate Limits](https://ai.google.dev/gemini-api/docs/rate-limits)
-- [Monitor Usage](https://ai.dev/rate-limit)
-
-If you encounter persistent errors, check your API key, plan, and usage dashboard.
-
-## 🎯 Purpose
-
-The goal of Drasa AI is to strengthen frontend fundamentals before moving to frameworks like React and backend development.  
-Every feature is built step by step to understand how real chat applications work.
+Drasa AI uses the Gemini API, which has strict rate limits and quotas (e.g., 20 requests per minute for the free tier of gemini-2.5-flash). If you see errors like "quota exceeded" or "rate limit reached," you must wait before sending more requests.
 
 ## 🚀 Future Improvements
 
