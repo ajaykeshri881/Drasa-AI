@@ -35,23 +35,22 @@ const PageManager = {
     },
 
     setupEventListeners() {
-        this.elements.newChatBtn.addEventListener('click', () => this.handleNewChat());
-        this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
-        this.elements.menuToggle.addEventListener('click', () => this.toggleSidebar());
-        
-        this.elements.clearHistoryBtn.addEventListener('click', () => this.handleClearHistory());
-        
-        this.elements.sendBtn.addEventListener('click', () => this.handleSendMessage());
-        this.elements.chatInput.addEventListener('keydown', (e) => this.handleInputKeydown(e));
-        this.elements.chatInput.addEventListener('input', () => this.handleInputChange());
-        this.elements.attachBtn.addEventListener('click', () => this.handleAttachment());
-        
-        this.elements.suggestionCards.forEach(card => {
-            card.addEventListener('click', () => this.handleSuggestionClick(card));
-        });
-        
+        if (this.elements.newChatBtn) this.elements.newChatBtn.addEventListener('click', () => this.handleNewChat());
+        if (this.elements.themeToggle) this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
+        if (this.elements.menuToggle) this.elements.menuToggle.addEventListener('click', () => this.toggleSidebar());
+        if (this.elements.clearHistoryBtn) this.elements.clearHistoryBtn.addEventListener('click', () => this.handleClearHistory());
+        if (this.elements.sendBtn) this.elements.sendBtn.addEventListener('click', () => this.handleSendMessage());
+        if (this.elements.chatInput) {
+            this.elements.chatInput.addEventListener('keydown', (e) => this.handleInputKeydown(e));
+            this.elements.chatInput.addEventListener('input', () => this.handleInputChange());
+        }
+        if (this.elements.attachBtn) this.elements.attachBtn.addEventListener('click', () => this.handleAttachment());
+        if (this.elements.suggestionCards && this.elements.suggestionCards.forEach) {
+            this.elements.suggestionCards.forEach(card => {
+                card.addEventListener('click', () => this.handleSuggestionClick(card));
+            });
+        }
         document.addEventListener('click', (e) => this.handleOutsideClick(e));
-        
         window.addEventListener('resize', () => this.handleResize());
     },
 
