@@ -1,0 +1,65 @@
+import mongoose, { Schema, Document } from "mongoose";
+
+export interface IMessage extends Omit<Document, 'model'> {
+  chatId: mongoose.Types.ObjectId;
+  role: "user" | "assistant" | "system" | "tool";
+  content: string;
+  model: string;
+  toolCalls?: any[];
+  toolResults?: any[];
+  attachments?: {
+    url: string;
+    type: "image" | "file" | "audio";
+    name: string;
+  }[];
+  tokensUsed: number;
+  metadata?: Record<string, any>;
+  createdAt: Date;
+}
+
+export interface IChat extends Omit<Document, 'model'> {
+  userId: mongoose.Types.ObjectId | string; // string for guest sessions
+  title: string;
+  isTemporary: boolean;
+  model: string;
+  mode: string; // chat, code, reasoning, vision, web
+  folderId?: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const MessageSchema = new Schema<IMessage>(
+  {
+    chatId: { type: Schema.Types.ObjectId, ref: "Chat", required: true, index: true },
+    role: { type: String, enum: ["user", "assistant", "system", "tool"], required: true },
+    content: { type: String, required: true },
+    model: { type: String, required: true },
+    toolCalls: { type: Schema.Types.Mixed },
+    toolResults: { type: Schema.Types.Mixed },
+    attachments: [
+      {
+        url: { type: String },
+        type: { type: String, enum: ["image", "file", "audio"] },
+        name: { type: String },
+      },
+    ],
+    tokensUsed: { type: Number, default: 0 },
+    metadata: { type: Schema.Types.Mixed },
+  },
+  { timestamps: { createdAt: true, updatedAt: false } }
+);
+
+const ChatSchema = new Schema<IChat>(
+  {
+    userId: { type: Schema.Types.Mixed, required: true, index: true }, // Mixed to allow ObjectId or Guest ID string
+    title: { type: String, default: "New Chat" },
+    isTemporary: { type: Boolean, default: false },
+    model: { type: String, required: true },
+    mode: { type: String, default: "chat" },
+    folderId: { type: Schema.Types.ObjectId, ref: "Folder" },
+  },
+  { timestamps: true }
+);
+
+export const Message = mongoose.models.Message || mongoose.model<IMessage>("Message", MessageSchema);
+export const Chat = mongoose.models.Chat || mongoose.model<IChat>("Chat", ChatSchema);
