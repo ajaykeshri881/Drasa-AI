@@ -1,6 +1,6 @@
 # 🚀 Drasa AI
 
-Drasa AI is a state-of-the-art, multi-modal AI platform designed to deliver a premium, intelligent, and seamless conversational experience. Built on a modern Next.js 15 App Router architecture, it acts as a unified gateway to the world's most powerful AI models, including Claude 3.5 Sonnet, GPT-4o, and Gemini 1.5 Pro.
+Drasa AI is a state-of-the-art, multi-modal AI platform designed to deliver a premium, intelligent, and seamless conversational experience. Built on a modern Next.js 15 App Router architecture, it acts as a unified gateway to the world's most powerful AI models.
 
 ---
 
