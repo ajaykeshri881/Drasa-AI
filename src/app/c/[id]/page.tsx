@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useChatStore } from '@/store/useChatStore';
 import { AI_MODES } from '@/lib/ai/prompts/modes';
 import { toast } from 'sonner';
+import Loading from '@/app/loading';
 
 export default function ChatHistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: chatId } = use(params);
@@ -31,7 +32,7 @@ export default function ChatHistoryPage({ params }: { params: Promise<{ id: stri
     append
   } = useChatSession({ id: chatId });
 
-  if (!isLoaded) return null; // Or a loading spinner
+  if (!isLoaded) return <Loading />;
 
   return (
     <MainLayout>
