@@ -61,9 +61,28 @@ export function MessageBubble({ message, onViewArtifact, activeSponsor, showSpon
     const utterance = new SpeechSynthesisUtterance(plainText);
     utterance.onend = () => setIsPlaying(false);
     utterance.onerror = () => setIsPlaying(false);
-    
+
+    // Prefer Indian English voice
+    const setVoiceAndSpeak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const indianVoice = voices.find(v => v.lang === 'en-IN')
+        || voices.find(v => v.lang.startsWith('en-IN'))
+        || voices.find(v => v.lang.startsWith('en'));
+      if (indianVoice) utterance.voice = indianVoice;
+      utterance.lang = 'en-IN';
+      window.speechSynthesis.speak(utterance);
+    };
+
     setIsPlaying(true);
-    window.speechSynthesis.speak(utterance);
+    // Voices may not be loaded immediately on first call
+    if (window.speechSynthesis.getVoices().length > 0) {
+      setVoiceAndSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        setVoiceAndSpeak();
+      };
+    }
   };
 
   return (
