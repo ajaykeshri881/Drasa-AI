@@ -14,6 +14,7 @@ export function useChatSession({ id, initialMessages = [] }: UseChatSessionProps
   const { defaultMode, defaultModelId } = useSettingsStore();
   const { isTemporaryChat, chats, addChat, setActiveChatId } = useChatStore();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
   
   const [isArtifactOpen, setIsArtifactOpen] = useState(false);
   const [artifactCode, setArtifactCode] = useState("");
@@ -29,23 +30,36 @@ export function useChatSession({ id, initialMessages = [] }: UseChatSessionProps
   const [loadedInitialMessages, setLoadedInitialMessages] = useState<Message[]>(initialMessages);
 
   useEffect(() => {
-    if (id) {
-      const saved = localStorage.getItem(`drasa_chat_${id}`);
-      if (saved) {
+    async function loadChat() {
+      if (id) {
         try {
-          setLoadedInitialMessages(JSON.parse(saved));
+          const res = await fetch(`/api/chats/${id}`);
+          if (res.ok) {
+            const data = await res.json();
+            setLoadedInitialMessages(data.messages || []);
+            if (data.chat?.status === "generating") {
+              setIsPolling(true);
+            }
+          } else {
+            const currentChats = useChatStore.getState().chats;
+            const existsLocally = currentChats.some(c => c.id === id);
+            if (!existsLocally) {
+              toast.error("Chat not found!");
+            }
+          }
         } catch (e) {
-          console.error("Failed to parse saved chat messages", e);
+          console.error("Failed to fetch saved chat messages", e);
         }
-      } else {
-        toast.error("Chat not found!");
+        setActiveChatId(id);
       }
-      setActiveChatId(id);
+      setIsLoaded(true);
     }
-    setIsLoaded(true);
+    loadChat();
   }, [id, setActiveChatId]);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput, stop, append } = useChat({
+
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput, stop, append, setMessages } = useChat({
     api: '/api/chat',
     id: chatId,
     initialMessages: loadedInitialMessages,
@@ -54,14 +68,43 @@ export function useChatSession({ id, initialMessages = [] }: UseChatSessionProps
       provider: defaultModelId === 'gemini-2.5-flash' || defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
       modelId: defaultModelId,
       chatId,
+      isTemporaryChat,
     },
     onResponse: () => {
       // Handled in useEffect
     },
     onError: (error) => {
       handleChatError(error);
+    },
+    fetch: async (url, options) => {
+      // Remove signal to prevent aborting the stream when unmounting (background generation)
+      const { signal, ...rest } = options || {};
+      return fetch(url, rest);
     }
   });
+
+  useEffect(() => {
+    if (!isPolling || !id) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/chats/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages) {
+            setMessages(data.messages);
+          }
+          if (data.chat?.status !== "generating") {
+            setIsPolling(false);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to poll chat:", e);
+      }
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [isPolling, id, setMessages]);
 
   // Watch for generate_website tool invocations and save to local storage
   useEffect(() => {
@@ -82,20 +125,47 @@ export function useChatSession({ id, initialMessages = [] }: UseChatSessionProps
     }
 
     if (!isTemporaryChat) {
-      try {
-        localStorage.setItem(`drasa_chat_${chatId}`, JSON.stringify(messages));
+      const existing = chats.find(c => c.id === chatId);
+      
+      if (!existing && messages.length > 0) {
+        addChat({
+          id: chatId,
+          title: 'New Chat',
+          mode: defaultMode,
+          updatedAt: new Date()
+        });
+      }
+      
+      // Once we have a response from the AI (length >= 2), generate a smart title
+      if (existing && existing.title === 'New Chat' && messages.length >= 2) {
+        const { setChats } = useChatStore.getState();
         
-        const existing = chats.find(c => c.id === chatId);
-        if (!existing) {
-          addChat({
-            id: chatId,
-            title: messages[0]?.content.slice(0, 30) + (messages[0]?.content.length > 30 ? '...' : '') || 'New Chat',
-            mode: defaultMode,
-            updatedAt: new Date()
-          });
-        }
-      } catch (e) {
-        console.error("Failed to save chat", e);
+        // Optimistically update to prevent multiple calls
+        setChats(chats.map(c => c.id === chatId ? { ...c, title: 'Generating...' } : c));
+        
+        fetch('/api/chat/title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: messages.slice(0, 2), chatId })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.title) {
+            setChats(useChatStore.getState().chats.map(c => 
+              c.id === chatId ? { ...c, title: data.title } : c
+            ));
+          } else {
+            // Fallback to the first message if AI fails
+            setChats(useChatStore.getState().chats.map(c => 
+              c.id === chatId ? { ...c, title: messages[0]?.content.slice(0, 30) } : c
+            ));
+          }
+        }).catch(() => {
+           // Fallback to the first message if API fails
+           setChats(useChatStore.getState().chats.map(c => 
+             c.id === chatId ? { ...c, title: messages[0]?.content.slice(0, 30) } : c
+           ));
+        });
       }
     }
   }, [messages, chatId, defaultMode, isLoaded, isTemporaryChat, chats, addChat]);
@@ -110,7 +180,7 @@ export function useChatSession({ id, initialMessages = [] }: UseChatSessionProps
     input,
     handleInputChange,
     handleSubmit,
-    isLoading,
+    isLoading: isLoading || isPolling,
     setInput,
     stop,
     append,

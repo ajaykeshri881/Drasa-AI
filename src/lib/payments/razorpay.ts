@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 export const PLAN_PRICING = {
   free: { amount: 0, currency: "INR" },
-  starter: { amount: 19900, currency: "INR" }, // amount in paise (199.00 INR)
+
   pro: { amount: 39900, currency: "INR" }, // amount in paise (399.00 INR)
   ultimate: { amount: 99900, currency: "INR" }, // amount in paise (999.00 INR)
 };
@@ -11,7 +11,7 @@ export const PLAN_PRICING = {
 export type PaidPlanId = Exclude<keyof typeof PLAN_PRICING, "free">;
 
 export function isPaidPlanId(planId: unknown): planId is PaidPlanId {
-  return planId === "starter" || planId === "pro" || planId === "ultimate";
+  return planId === "pro" || planId === "ultimate";
 }
 
 function getRazorpayClient() {

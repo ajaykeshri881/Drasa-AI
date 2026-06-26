@@ -24,7 +24,7 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     image: { type: String },
     role: { type: String, enum: ["user", "admin"], default: "user" },
-    plan: { type: String, enum: ["free", "starter", "pro", "ultimate"], default: "free" },
+    plan: { type: String, enum: ["free", "pro", "ultimate"], default: "free" },
     isGuest: { type: Boolean, default: false },
     preferences: {
       theme: { type: String, enum: ["light", "dark", "system"], default: "system" },

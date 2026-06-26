@@ -18,7 +18,9 @@ export interface GatewayRequest {
   userContext: Omit<PromptContext, "mode" | "currentDate">;
   requestedMode?: AIMode;
   userId?: string;
+  ip?: string;
   chatId?: string;
+  isTemporaryChat?: boolean;
 }
 
 export class AIGateway {
@@ -39,6 +41,161 @@ export class AIGateway {
     return await this.executeUnifiedStream(req, systemPrompt, modeConfig.temperature, modeConfig.topP);
   }
 
+  private static async setChatStatus(req: GatewayRequest, status: "generating" | "completed" | "failed") {
+    // Skip all DB operations for temporary chats
+    if (req.isTemporaryChat) return;
+    try {
+      const { Chat } = await import('../../db/models/Chat');
+      const { connectDB } = await import('../../db/connection');
+      await connectDB();
+
+      const chatId = req.chatId || `chat_${Date.now()}`;
+      const userId = req.userId || req.ip || 'anonymous';
+
+      const existingChat = await Chat.findById(chatId);
+      if (!existingChat) {
+        const title = req.messages.find(m => m.role === "user")?.content.slice(0, 40) || "New Chat";
+        await Chat.create({
+          _id: chatId,
+          userId,
+          title,
+          model: req.modelId,
+          mode: req.requestedMode || "chat",
+          isTemporary: false,
+          status,
+        });
+      } else {
+        await Chat.findByIdAndUpdate(chatId, { status, updatedAt: new Date() });
+      }
+    } catch (e) {
+      console.error("Failed to update chat status:", e);
+    }
+  }
+
+  private static async handleStreamFinish(req: GatewayRequest, event: any) {
+    // Skip all DB persistence for temporary chats
+    if (!req.isTemporaryChat) {
+      // 1. Save Chat and Messages to DB
+      try {
+        const { Chat, Message } = await import('../../db/models/Chat');
+        const { connectDB } = await import('../../db/connection');
+        await connectDB();
+
+        const chatId = req.chatId || `chat_${Date.now()}`;
+        const userId = req.userId || req.ip || 'anonymous';
+        
+        // Ensure chat exists
+        const existingChat = await Chat.findById(chatId);
+        if (!existingChat) {
+          const title = req.messages.find(m => m.role === "user")?.content.slice(0, 40) || "New Chat";
+          await Chat.create({
+            _id: chatId,
+            userId,
+            title,
+            model: req.modelId,
+            mode: req.requestedMode || "chat",
+            isTemporary: false,
+            status: "completed"
+          });
+        } else {
+          await Chat.findByIdAndUpdate(chatId, { status: "completed", updatedAt: new Date() });
+        }
+
+        const lastUserMsg = req.messages.filter(m => m.role === 'user').pop();
+        if (lastUserMsg) {
+          const userMsgId = `${chatId}_user_${Date.now()}`;
+          await Message.findOneAndUpdate(
+            { chatId, role: 'user', content: lastUserMsg.content },
+            { 
+              _id: userMsgId,
+              chatId, 
+              role: 'user', 
+              content: lastUserMsg.content,
+              model: req.modelId,
+              attachments: req.hasAttachments && (lastUserMsg as any).experimental_attachments ? (lastUserMsg as any).experimental_attachments.map((a: any) => ({
+                url: a.url,
+                type: a.contentType?.includes('image') ? 'image' : 'file',
+                name: a.name || 'attachment'
+              })) : undefined
+            },
+            { upsert: true }
+          );
+        }
+
+        // Save assistant response
+        const assistantMsgId = `${chatId}_asst_${Date.now()}`;
+        await Message.create({
+          _id: assistantMsgId,
+          chatId,
+          role: 'assistant',
+          content: event.text || '',
+          model: req.modelId,
+          toolCalls: event.toolCalls,
+          toolResults: event.toolResults,
+          tokensUsed: event.usage?.totalTokens || 0
+        });
+        
+        await Chat.findByIdAndUpdate(chatId, { updatedAt: new Date() });
+
+      } catch (dbErr) {
+        console.error('Failed to save chat to DB:', dbErr);
+      }
+    }
+    if (req.userId) {
+      try {
+        const { User } = await import('../../db/models/User');
+        const { connectDB } = await import('../../db/connection');
+        await connectDB();
+        await User.findByIdAndUpdate(req.userId, {
+          $inc: { 
+            'usage.messagesUsedToday': 1,
+            'usage.tokensUsedToday': event.usage?.totalTokens || 0,
+            'usage.messagesUsedThisMonth': 1,
+            'usage.tokensUsedThisMonth': event.usage?.totalTokens || 0,
+            'usage.filesUsedToday': req.hasAttachments ? 1 : 0
+          }
+        });
+      } catch (e) {
+        console.error('Failed to update user usage:', e);
+      }
+
+      // Skip memory extraction for temporary chats
+      if (!req.isTemporaryChat) {
+        try {
+          const { enqueueMemoryExtraction } = await import('../../queue/producers');
+          await enqueueMemoryExtraction({
+            userId: req.userId,
+            chatId: req.chatId || 'unknown',
+            messages: [
+              ...req.messages,
+              { role: 'assistant' as const, content: event.text || '' }
+            ],
+          });
+        } catch (mqErr) {
+          console.warn('Failed to enqueue memory extraction (non-fatal):', mqErr);
+        }
+      }
+    } else if (req.ip) {
+      try {
+        const { AnonymousUsage } = await import('../../db/models/AnonymousUsage');
+        const { connectDB } = await import('../../db/connection');
+        await connectDB();
+        await AnonymousUsage.findOneAndUpdate(
+          { ip: req.ip },
+          {
+            $inc: {
+              'tokensUsedThisMonth': event.usage?.totalTokens || 0,
+              'tokensUsedToday': event.usage?.totalTokens || 0
+            }
+          },
+          { upsert: true }
+        );
+      } catch (e) {
+        console.error('Failed to update anonymous usage:', e);
+      }
+    }
+  }
+
   private static async executeUnifiedStream(
     req: GatewayRequest, 
     systemPrompt: string,
@@ -54,6 +211,27 @@ export class AIGateway {
           html: z.string().describe("The complete, raw HTML string including the <html>, <head>, and <body> tags."),
         }),
         execute: async ({ html }) => {
+          if (req.userId) {
+            try {
+              const { User } = await import('../../db/models/User');
+              const { connectDB } = await import('../../db/connection');
+              const { getPlanLimits } = await import('../../config/plans');
+              await connectDB();
+              
+              const user = await User.findById(req.userId);
+              const limits = getPlanLimits(user?.plan || "free");
+              
+              if ((user?.usage?.websiteGenerationsUsed || 0) >= (limits as any).monthlyWebsites) {
+                return { success: false, message: `Website generation limit reached. You have used all ${(limits as any).monthlyWebsites} generations for this month on the ${limits.name} plan. Please upgrade to generate more websites.` };
+              }
+
+              await User.findByIdAndUpdate(req.userId, {
+                $inc: { 'usage.websiteGenerationsUsed': 1 }
+              });
+            } catch (e) {
+              console.error("Failed to track website generation usage:", e);
+            }
+          }
           return { success: true, message: "Website generated successfully and displayed in the preview pane." };
         }
       }),
@@ -105,25 +283,30 @@ export class AIGateway {
              const { Memory } = await import('../../db/models/Memory');
              const { connectDB } = await import('../../db/connection');
              const { upsertMemory } = await import('../memory/vector-store');
+             const mongoose = (await import('mongoose')).default;
              await connectDB();
              
              const vectorId = `local_${Date.now()}`;
+             const isObjectId = mongoose.Types.ObjectId.isValid(req.userId);
+             const dbUserId = isObjectId ? new mongoose.Types.ObjectId(req.userId) : req.userId;
              
              await Memory.create({
-               userId: req.userId,
+               userId: dbUserId,
                content,
                category: category || 'fact',
                pineconeId: vectorId
              });
-             
-             // Fire and forget Redis vector upsert
-             upsertMemory(req.userId, vectorId, content, category || 'fact').catch(e => {
-               console.error("Failed to upsert to Redis vector store:", e);
-             });
+             // Fire and forget Redis vector upsert, but handle errors cleanly
+             try {
+               await upsertMemory(req.userId, vectorId, content, category || 'fact');
+             } catch (e) {
+               console.error("ALERT: Failed to upsert to Redis vector store. Memory only saved to MongoDB:", e);
+               // We still return success because MongoDB save succeeded, but logged the vector DB failure
+             }
              
              return { success: true, message: "Memory saved successfully." };
           } catch (e) {
-             console.error("Failed to save memory tool:", e);
+             console.error("Failed to save memory tool (MongoDB error):", e);
              return { success: false, message: "Failed to save memory." };
           }
         }
@@ -132,6 +315,9 @@ export class AIGateway {
 
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const fullSystemPrompt = `${systemPrompt}\n\nCurrent Date: ${currentDate}.`;
+
+    // Mark status as generating
+    await this.setChatStatus(req, "generating");
 
     try {
       const result = await streamText({
@@ -143,38 +329,7 @@ export class AIGateway {
         temperature,
         topP,
         onFinish: async (event) => {
-          if (req.userId) {
-            try {
-              const { User } = await import('../../db/models/User');
-              const { connectDB } = await import('../../db/connection');
-              await connectDB();
-              await User.findByIdAndUpdate(req.userId, {
-                $inc: { 
-                  'usage.messagesUsedToday': 1,
-                  'usage.tokensUsedToday': event.usage?.totalTokens || 0,
-                  'usage.messagesUsedThisMonth': 1,
-                  'usage.tokensUsedThisMonth': event.usage?.totalTokens || 0
-                }
-              });
-            } catch (e) {
-              console.error('Failed to update usage:', e);
-            }
-
-            // Enqueue background memory extraction
-            try {
-              const { enqueueMemoryExtraction } = await import('../../queue/producers');
-              await enqueueMemoryExtraction({
-                userId: req.userId,
-                chatId: req.chatId || 'unknown',
-                messages: [
-                  ...req.messages,
-                  { role: 'assistant' as const, content: event.text || '' }
-                ],
-              });
-            } catch (mqErr) {
-              console.warn('Failed to enqueue memory extraction (non-fatal):', mqErr);
-            }
-          }
+          await this.handleStreamFinish(req, event);
         }
       });
 
@@ -189,6 +344,7 @@ export class AIGateway {
       
       // If the user hit a hard limit, don't attempt fallback
       if (error.message?.includes("Rate limit") || error.message?.includes("credits")) {
+        await this.setChatStatus(req, "failed");
         throw new Error(error.message);
       }
 
@@ -207,38 +363,7 @@ export class AIGateway {
           temperature,
           topP,
           onFinish: async (event) => {
-            if (req.userId) {
-              try {
-                const { User } = await import('../../db/models/User');
-                const { connectDB } = await import('../../db/connection');
-                await connectDB();
-                await User.findByIdAndUpdate(req.userId, {
-                  $inc: { 
-                    'usage.messagesUsedToday': 1,
-                    'usage.tokensUsedToday': event.usage?.totalTokens || 0,
-                    'usage.messagesUsedThisMonth': 1,
-                    'usage.tokensUsedThisMonth': event.usage?.totalTokens || 0
-                  }
-                });
-              } catch (e) {
-                console.error('Failed to update usage:', e);
-              }
-
-              // Enqueue background memory extraction
-              try {
-                const { enqueueMemoryExtraction } = await import('../../queue/producers');
-                await enqueueMemoryExtraction({
-                  userId: req.userId,
-                  chatId: req.chatId || 'unknown',
-                  messages: [
-                    ...req.messages,
-                    { role: 'assistant' as const, content: event.text || '' }
-                  ],
-                });
-              } catch (mqErr) {
-                console.warn('Failed to enqueue memory extraction (non-fatal):', mqErr);
-              }
-            }
+            await this.handleStreamFinish(req, event);
           }
         });
 
@@ -246,6 +371,7 @@ export class AIGateway {
           getErrorMessage: (err: any) => err?.message || String(err),
         });
       } catch (fallbackError: any) {
+        await this.setChatStatus(req, "failed");
         throw new Error(`Both primary and fallback models failed. Last error: ${fallbackError.message}`);
       }
     }

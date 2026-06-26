@@ -49,7 +49,7 @@ const AlertSchema = new Schema<IAlert>(
     },
     isActive: { type: Boolean, default: true },
     dismissible: { type: Boolean, default: true },
-    targetPlans: [{ type: String, enum: ["free", "starter", "pro", "ultimate"] }],
+    targetPlans: [{ type: String, enum: ["free", "pro", "ultimate"] }],
     startsAt: { type: Date, default: Date.now },
     expiresAt: { type: Date },
     actionUrl: { type: String },

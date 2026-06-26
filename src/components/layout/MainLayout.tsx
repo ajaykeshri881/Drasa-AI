@@ -28,7 +28,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   }, [setActiveAlerts]);
 
   return (
-    <div className="flex h-screen w-full bg-background dark:bg-[#1A1918] text-foreground dark:text-[#E6E4DF] font-sans overflow-hidden selection:bg-primary/30">
+    <div className="flex h-[100dvh] w-full bg-background dark:bg-[#1A1918] text-foreground dark:text-[#E6E4DF] font-sans overflow-hidden selection:bg-primary/30">
       <Sidebar />
       <main className="flex-1 flex flex-col relative h-full bg-background dark:bg-[#1A1918] transition-all duration-300">
         <NotificationBanner />

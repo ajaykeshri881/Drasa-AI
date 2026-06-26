@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IMemory extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId | string;
   content: string; // The raw fact/memory
   pineconeId: string; // ID linking to Pinecone vector
   category: "preference" | "fact" | "rule" | "project_context";
@@ -12,7 +12,7 @@ export interface IMemory extends Document {
 
 const MemorySchema = new Schema<IMemory>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: Schema.Types.Mixed, required: true, index: true },
     content: { type: String, required: true },
     pineconeId: { type: String, required: true, unique: true },
     category: { 

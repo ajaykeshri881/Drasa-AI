@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Message } from "ai/react";
 import { MessageBubble } from "./MessageBubble";
-import { Sparkles, Terminal, Layout, MessageSquare, Image as ImageIcon, Zap, Search } from "lucide-react";
+import { Sparkles, Terminal, Layout, MessageSquare, Image as ImageIcon, Zap, Search, EyeOff } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useChatStore } from "@/store/useChatStore";
 import { toast } from "sonner";
@@ -27,7 +27,7 @@ interface ChatAreaProps {
 export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifact }: ChatAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
-  const { chats } = useChatStore();
+  const { chats, isTemporaryChat } = useChatStore();
   const [greeting, setGreeting] = useState("Hello");
   const [suggestions, setSuggestions] = useState<typeof ALL_SUGGESTIONS>([]);
   const [hasWarned80, setHasWarned80] = useState(false);
@@ -56,16 +56,13 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
             const usage = data.user.usage;
             const plan = data.user.plan;
             const limits = {
-              free: { daily: 2000, monthly: 25000 },
-              starter: { daily: 5000, monthly: 150000 },
-              pro: { daily: 30000, monthly: 750000 },
-              ultimate: { daily: 100000, monthly: 2000000 },
-              premium: { daily: 100000, monthly: 2000000 }
-            }[plan as string] || { daily: 2000, monthly: 25000 };
+              free: { monthly: 25000 },
+              pro: { monthly: 750000 },
+              ultimate: { monthly: 2000000 }
+            }[plan as string] || { monthly: 25000 };
 
-            const dailyPercent = (usage.tokensUsedToday / limits.daily) * 100;
-            const monthlyPercent = (usage.tokensUsedThisMonth / limits.monthly) * 100;
-            const highestPercent = Math.max(dailyPercent, monthlyPercent);
+            const monthlyPercent = ((usage.tokensUsedThisMonth || 0) / limits.monthly) * 100;
+            const highestPercent = monthlyPercent;
 
             if (highestPercent >= 90 && !hasWarned90) {
               toast.warning("Usage Warning: You have reached 90% of your token limit.", { duration: 8000 });
@@ -80,7 +77,7 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
           if (data?.user?.plan === 'pro' || data?.user?.plan === 'ultimate') {
             setShowSponsorHighlights(data.user.preferences?.showSponsorHighlights ?? false);
           } else {
-            // Free and starter users always see it if enabled globally
+            // Free users always see it if enabled globally
             setShowSponsorHighlights(true);
           }
         })
@@ -173,9 +170,17 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
           style={{ animationDuration: '4s' }}
         ></div>
 
+        {/* Temporary Chat Banner */}
+        {isTemporaryChat && (
+          <div className="mb-6 flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 dark:bg-[#C36A4F]/10 border border-primary/30 dark:border-[#C36A4F]/30 text-primary dark:text-[#C36A4F] text-[12px] font-medium shadow-sm z-20 whitespace-nowrap animate-in fade-in slide-in-from-top-2 duration-300">
+            <EyeOff size={13} className="animate-pulse" />
+            Temporary Chat — messages won't be saved & memory is off
+          </div>
+        )}
+
         <h1 className="text-4xl md:text-[44px] font-serif text-foreground dark:text-[#E6E4DF] mb-8 flex items-center justify-center gap-3 tracking-tight drop-shadow-sm">
           <Sparkles size={32} className="text-primary dark:text-[#C36A4F] animate-pulse" style={{ animationDuration: '3s' }} />
-          {greeting}, {session?.user?.name ? session.user.name.split(' ')[0] : "there"}
+          {greeting}{session?.user?.name ? `, ${session.user.name.split(' ')[0]}` : ""}
         </h1>
 
         {/* Suggestion Cards */}
@@ -194,7 +199,7 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
     );
   }
 
-  let loadingText = "Thinking...";
+  let loadingText = "Thinking";
   let showLoadingIndicator = isLoading;
   
   if (isLoading && messages.length > 0) {
@@ -212,9 +217,9 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
 
         if (toolParts.length > 0) {
           const currentTool = toolParts[toolParts.length - 1];
-          if (currentTool.toolName === "internet_search") loadingText = "Searching the web...";
-          else if (currentTool.toolName === "generate_website") loadingText = "Generating website...";
-          else loadingText = "Using tool...";
+          if (currentTool.toolName === "internet_search") loadingText = "Searching the web";
+          else if (currentTool.toolName === "generate_website") loadingText = "Generating website";
+          else loadingText = "Using tool";
         }
       }
     }
@@ -225,6 +230,15 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
       className="flex-1 overflow-y-auto pb-4 custom-scrollbar w-full pt-16 relative z-10" 
       ref={scrollRef}
     >
+      {/* Persistent Temporary Chat Banner (while chatting) */}
+      {isTemporaryChat && (
+        <div className="sticky top-0 z-20 flex justify-center pt-1 pb-2 pointer-events-none">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 dark:bg-[#C36A4F]/10 border border-primary/30 dark:border-[#C36A4F]/30 text-primary dark:text-[#C36A4F] text-[11px] font-medium shadow-sm backdrop-blur-sm pointer-events-auto">
+            <EyeOff size={11} className="animate-pulse" />
+            Temporary — not saved
+          </div>
+        </div>
+      )}
       <div className="flex flex-col w-full max-w-4xl mx-auto">
         {messages.map((message) => (
           <MessageBubble 
@@ -236,7 +250,7 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
           />
         ))}
         {showLoadingIndicator && (
-          <div className="flex w-full px-4 md:px-8 py-6 gap-4 md:gap-6 bg-muted/30 dark:bg-[#1A1918]">
+          <div className="flex w-full px-4 md:px-8 py-6 gap-4 md:gap-6 bg-transparent">
              <div className="flex-shrink-0 mt-1">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-primary dark:text-[#C36A4F]">
                   <Sparkles size={24} className="animate-pulse" />

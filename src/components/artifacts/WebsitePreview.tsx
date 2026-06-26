@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Monitor, Smartphone, Tablet, RefreshCw, Maximize2, Code2, Download } from "lucide-react";
+import { Monitor, Smartphone, Tablet, RefreshCw, Maximize2, Code2, Download, FileArchive } from "lucide-react";
 
 interface WebsitePreviewProps {
   code: string;
@@ -34,6 +34,28 @@ export function WebsitePreview({ code, onClose }: WebsitePreviewProps) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadZip = async () => {
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      
+      // Inject standard template inside ZIP folder
+      zip.file("index.html", processedCode);
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "drasa-website-build.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("ZIP creation failed:", err);
+    }
   };
 
   // Inject Tailwind CDN automatically if it's missing but seems needed
@@ -84,23 +106,28 @@ export function WebsitePreview({ code, onClose }: WebsitePreviewProps) {
             </button>
           </div>
           {viewMode === "preview" && (
-            <>
-              <button 
-                onClick={handleRefresh}
-                className={`p-2 rounded-lg text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-muted dark:hover:bg-[#2A2928] transition-colors ${isRefreshing ? 'animate-spin text-primary' : ''}`}
-                title="Refresh Preview"
-              >
-                <RefreshCw size={16} />
-              </button>
-              <button 
-                onClick={handleDownload}
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-muted dark:hover:bg-[#2A2928] transition-colors"
-                title="Download HTML"
-              >
-                <Download size={16} />
-              </button>
-            </>
+            <button 
+              onClick={handleRefresh}
+              className={`p-2 rounded-lg text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-muted dark:hover:bg-[#2A2928] transition-colors ${isRefreshing ? 'animate-spin text-primary' : ''}`}
+              title="Refresh Preview"
+            >
+              <RefreshCw size={16} />
+            </button>
           )}
+          <button 
+            onClick={handleDownload}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-muted dark:hover:bg-[#2A2928] transition-colors"
+            title="Download HTML"
+          >
+            <Download size={16} />
+          </button>
+          <button 
+            onClick={handleDownloadZip}
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-muted dark:hover:bg-[#2A2928] transition-colors animate-in"
+            title="Download ZIP Folder"
+          >
+            <FileArchive size={16} />
+          </button>
           {onClose && (
             <button 
               onClick={onClose}

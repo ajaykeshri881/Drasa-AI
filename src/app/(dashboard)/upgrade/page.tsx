@@ -26,22 +26,7 @@ const PRICING_TIERS = [
     color: "text-blue-500",
     bg: "bg-blue-500/10 border-blue-500/20"
   },
-  {
-    id: "starter",
-    name: "Starter",
-    price: 199,
-    description: "For hobbyists needing a bit more power.",
-    features: [
-      "5K tokens/day",
-      "150K tokens/month",
-      "Basic AI Models",
-      "Standard Web Search",
-      "Real-time Voice Mode",
-    ],
-    icon: <Sparkles size={24} />,
-    color: "text-green-500",
-    bg: "bg-green-500/10 border-green-500/20"
-  },
+
   {
     id: "pro",
     name: "Pro",
@@ -81,7 +66,6 @@ export default function UpgradePage() {
   const { data: session, update } = useSession();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
-  const [isAutoPay, setIsAutoPay] = useState(false);
 
   const handleUpgrade = async (tier: typeof PRICING_TIERS[0]) => {
     if (!session) {
@@ -98,7 +82,7 @@ export default function UpgradePage() {
       const orderRes = await fetch("/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: tier.price, planId: tier.id, autoPay: isAutoPay })
+        body: JSON.stringify({ amount: tier.price, planId: tier.id, autoPay: true })
       });
       
       const orderData = await orderRes.json();
@@ -181,19 +165,9 @@ export default function UpgradePage() {
             </p>
           </div>
 
-          <div className="flex justify-center mb-10">
-            <label className="flex items-center gap-3 text-sm font-medium text-muted-foreground dark:text-[#E6E4DF] bg-card dark:bg-[#2A2928]/60 backdrop-blur-xl border rounded-full py-2 px-6 shadow-sm cursor-pointer hover:bg-muted/50 dark:hover:bg-[#33312E] transition-colors">
-              <input 
-                type="checkbox" 
-                checked={isAutoPay} 
-                onChange={(e) => setIsAutoPay(e.target.checked)} 
-                className="rounded border-border accent-primary cursor-pointer w-4 h-4" 
-              />
-              Enable Auto-pay (Recurring Monthly)
-            </label>
-          </div>
+          {/* Auto-pay is enabled by default as this is a subscription service */}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
             {PRICING_TIERS.map((tier) => (
               <div 
                 key={tier.id}

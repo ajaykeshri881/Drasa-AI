@@ -29,7 +29,7 @@ export interface IPayment extends Document {
 const SubscriptionSchema = new Schema<ISubscription>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    plan: { type: String, enum: ["free", "starter", "pro", "ultimate"], required: true },
+    plan: { type: String, enum: ["free", "pro", "ultimate"], required: true },
     razorpaySubscriptionId: { type: String },
     razorpayCustomerId: { type: String },
     status: { 
@@ -57,7 +57,7 @@ const PaymentSchema = new Schema<IPayment>(
       enum: ["success", "failed", "pending", "refunded"],
       required: true 
     },
-    plan: { type: String, enum: ["free", "starter", "pro", "ultimate"], required: true },
+    plan: { type: String, enum: ["free", "pro", "ultimate"], required: true },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

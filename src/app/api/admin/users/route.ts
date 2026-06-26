@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
 import { cancelSubscription } from "@/lib/payments/razorpay";
+import { isValidPlan } from "@/lib/config/plans";
 
 export async function GET(req: Request) {
   try {
@@ -78,7 +79,7 @@ export async function PATCH(req: Request) {
     const unsets: Record<string, any> = {};
 
     if (plan) {
-      if (!["free", "starter", "pro", "ultimate"].includes(plan)) {
+      if (!isValidPlan(plan)) {
         return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
       }
       updates.plan = plan;

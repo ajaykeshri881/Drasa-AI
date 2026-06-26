@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IMessage extends Omit<Document, 'model'> {
-  chatId: mongoose.Types.ObjectId;
+  _id: string;
+  chatId: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   model: string;
@@ -18,19 +19,22 @@ export interface IMessage extends Omit<Document, 'model'> {
 }
 
 export interface IChat extends Omit<Document, 'model'> {
+  _id: string;
   userId: mongoose.Types.ObjectId | string; // string for guest sessions
   title: string;
   isTemporary: boolean;
   model: string;
   mode: string; // chat, code, reasoning, vision, web
   folderId?: mongoose.Types.ObjectId;
+  status: "generating" | "completed" | "failed";
   createdAt: Date;
   updatedAt: Date;
 }
 
 const MessageSchema = new Schema<IMessage>(
   {
-    chatId: { type: Schema.Types.ObjectId, ref: "Chat", required: true, index: true },
+    _id: { type: String, required: true },
+    chatId: { type: String, ref: "Chat", required: true, index: true },
     role: { type: String, enum: ["user", "assistant", "system", "tool"], required: true },
     content: { type: String, required: true },
     model: { type: String, required: true },
@@ -51,12 +55,14 @@ const MessageSchema = new Schema<IMessage>(
 
 const ChatSchema = new Schema<IChat>(
   {
+    _id: { type: String, required: true },
     userId: { type: Schema.Types.Mixed, required: true, index: true }, // Mixed to allow ObjectId or Guest ID string
     title: { type: String, default: "New Chat" },
     isTemporary: { type: Boolean, default: false },
     model: { type: String, required: true },
     mode: { type: String, default: "chat" },
     folderId: { type: Schema.Types.ObjectId, ref: "Folder" },
+    status: { type: String, enum: ["generating", "completed", "failed"], default: "completed" },
   },
   { timestamps: true }
 );

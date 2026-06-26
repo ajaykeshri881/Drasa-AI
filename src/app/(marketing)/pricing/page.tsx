@@ -26,7 +26,7 @@ export default async function PricingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {/* Free Plan */}
             <div className="bg-card dark:bg-[#1F1E1D] border border-border dark:border-[#33312E] rounded-3xl p-8 shadow-sm flex flex-col">
               <h3 className="text-xl font-medium text-foreground dark:text-[#E6E4DF] mb-2">Free</h3>
@@ -55,37 +55,7 @@ export default async function PricingPage() {
             </div>
 
 
-            {/* Starter Plan */}
-            <div className="bg-card dark:bg-[#1F1E1D] border border-border dark:border-[#33312E] rounded-3xl p-6 shadow-sm flex flex-col">
-              <h3 className="text-xl font-medium text-foreground dark:text-[#E6E4DF] mb-2">Starter</h3>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-semibold text-foreground dark:text-white">₹199</span>
-                <span className="text-muted-foreground dark:text-[#73726E]">/month</span>
-              </div>
-              <p className="text-sm text-muted-foreground dark:text-[#8A8985] mb-8">Everything you need for serious daily usage.</p>
-              
-              {currentPlan === "starter" ? (
-                <Link href="/preferences" className="w-full py-3 px-4 bg-secondary dark:bg-white/10 text-secondary-foreground dark:text-white text-center hover:bg-secondary/80 dark:hover:bg-white/20 rounded-xl font-medium mb-8 transition-colors block">
-                  Manage Subscription
-                </Link>
-              ) : (
-                <CheckoutButton 
-                  planId="starter" 
-                  planName="Starter" 
-                  amount={199}
-                  className="w-full py-3 px-4 bg-secondary dark:bg-white/10 hover:bg-secondary/80 dark:hover:bg-white/20 text-secondary-foreground dark:text-white rounded-xl font-medium mb-8 transition-colors"
-                >
-                  Get Starter
-                </CheckoutButton>
-              )}
 
-              <div className="space-y-4 flex-1">
-                <FeatureItem text="Basic open-source models" />
-                <FeatureItem text="50 messages per day" />
-                <FeatureItem text="10 file uploads per day" />
-                <FeatureItem text="10 website generations per month" />
-              </div>
-            </div>
 
             {/* Pro Plan */}
             <div className="bg-card dark:bg-[#262523] border-2 border-primary dark:border-[#C36A4F] rounded-3xl p-8 shadow-xl relative flex flex-col transform md:-translate-y-4">

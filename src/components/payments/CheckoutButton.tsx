@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
 interface CheckoutButtonProps {
-  planId: "starter" | "pro" | "ultimate";
+  planId: "pro" | "ultimate";
   planName: string;
   amount: number;
   className?: string;
@@ -16,7 +16,7 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ planId, planName, amount, className, children }: CheckoutButtonProps) {
   const { data: session, update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const [isAutoPay, setIsAutoPay] = useState(false);
+  const isAutoPay = true;
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -116,15 +116,9 @@ export function CheckoutButton({ planId, planName, amount, className, children }
 
   return (
     <div className="flex flex-col gap-3 w-full mb-8">
-      <label className="flex items-center justify-center gap-2 text-xs text-muted-foreground dark:text-[#8A8985] cursor-pointer">
-        <input 
-          type="checkbox" 
-          checked={isAutoPay} 
-          onChange={(e) => setIsAutoPay(e.target.checked)} 
-          className="rounded border-border accent-primary cursor-pointer w-4 h-4" 
-        />
-        Auto-pay (Recurring Monthly)
-      </label>
+      <p className="text-[11px] text-center text-muted-foreground dark:text-[#8A8985] max-w-[280px] mx-auto leading-relaxed">
+        This is an auto-renewing subscription. You will be automatically billed every month for uninterrupted access. You can cancel at any time.
+      </p>
       <button 
         onClick={handlePayment} 
         disabled={isLoading}

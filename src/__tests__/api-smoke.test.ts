@@ -24,6 +24,14 @@ jest.mock("@/lib/db/models/User", () => ({
   },
 }));
 
+jest.mock("@/lib/db/models/AnonymousUsage", () => ({
+  AnonymousUsage: {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    updateOne: jest.fn(),
+  },
+}));
+
 describe("public model API", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -70,7 +78,6 @@ describe("plan validation", () => {
     expect(isPaidPlanId("pro")).toBe(true);
     expect(isPaidPlanId("ultimate")).toBe(true);
     expect(isPaidPlanId("free")).toBe(false);
-    expect(isPaidPlanId("starter")).toBe(false);
     expect(isPaidPlanId("premium")).toBe(false);
   });
 });
@@ -80,11 +87,17 @@ describe("chat API auth boundary", () => {
     jest.clearAllMocks();
   });
 
-  it("returns 401 for anonymous chat requests", async () => {
+  it("returns 403 when anonymous chat rate limit is exceeded", async () => {
     const { auth } = await import("@/lib/auth/auth");
+    const { AnonymousUsage } = await import("@/lib/db/models/AnonymousUsage");
     const { POST } = await import("@/app/api/chat/route");
 
     (auth as jest.Mock).mockResolvedValue(null);
+    (AnonymousUsage.findOne as jest.Mock).mockResolvedValue({
+      ip: "127.0.0.1",
+      tokensUsedThisMonth: 30000,
+      lastMonthlyResetDate: new Date(),
+    });
 
     const request = new Request("http://localhost/api/chat", {
       method: "POST",
@@ -101,7 +114,7 @@ describe("chat API auth boundary", () => {
     const response = await POST(request);
     const body = await response.json();
 
-    expect(response.status).toBe(401);
-    expect(body.error).toMatch(/unauthorized/i);
+    expect(response.status).toBe(403);
+    expect(body.error).toMatch(/free trial limit/i);
   });
 });

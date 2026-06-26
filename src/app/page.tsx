@@ -10,9 +10,13 @@ import { ChatInputForm } from "@/components/chat/ChatInputForm";
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useChatStore } from '@/store/useChatStore';
 import { AI_MODES } from '@/lib/ai/prompts/modes';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 export default function Home() {
+  useEffect(() => {
+    useChatStore.getState().setActiveChatId(null);
+  }, []);
   const { defaultMode, defaultModelId, setDefaultMode, enterToSend } = useSettingsStore();
   const {
     messages,
