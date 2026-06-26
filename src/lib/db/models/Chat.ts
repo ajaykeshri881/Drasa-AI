@@ -1,6 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface IMessage extends Omit<Document, 'model'> {
+export interface IMessage {
   _id: string;
   chatId: string;
   role: "user" | "assistant" | "system" | "tool";
@@ -18,7 +18,7 @@ export interface IMessage extends Omit<Document, 'model'> {
   createdAt: Date;
 }
 
-export interface IChat extends Omit<Document, 'model'> {
+export interface IChat {
   _id: string;
   userId: mongoose.Types.ObjectId | string; // string for guest sessions
   title: string;
