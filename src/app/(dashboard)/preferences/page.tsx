@@ -120,46 +120,25 @@ export default function PreferencesPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6">
                   {/* Monthly Tokens */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-foreground dark:text-[#E6E4DF] font-medium">Monthly Tokens</span>
                       <span className="text-muted-foreground dark:text-[#8A8985]">
-                        {((userData.usage?.tokensUsedThisMonth || 0) / 1000).toFixed(1)}k / {userData.plan === 'ultimate' ? '2M' : userData.plan === 'pro' ? '750k' : userData.plan === 'starter' ? '150k' : '25k'}
+                        {((userData.usage?.tokensUsedThisMonth || 0) / 1000).toFixed(1)}k / {userData.plan === 'ultimate' ? '2M' : userData.plan === 'pro' ? '750k' : '25k'}
                       </span>
                     </div>
                     <div className="h-2.5 w-full bg-muted dark:bg-[#1A1918] rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-primary dark:bg-[#C36A4F] transition-all duration-500 ease-out rounded-full"
-                        style={{ 
-                          width: `${Math.min(100, ((userData.usage?.tokensUsedThisMonth || 0) / (userData.plan === 'ultimate' ? 2000000 : userData.plan === 'pro' ? 750000 : userData.plan === 'starter' ? 150000 : 25000)) * 100)}%` 
+                        style={{
+                          width: `${Math.min(100, ((userData.usage?.tokensUsedThisMonth || 0) / (userData.plan === 'ultimate' ? 2000000 : userData.plan === 'pro' ? 750000 : 25000)) * 100)}%`
                         }}
                       />
                     </div>
                     <div className="text-[11px] text-muted-foreground dark:text-[#8A8985] text-right">
-                      {Math.round(Math.min(100, ((userData.usage?.tokensUsedThisMonth || 0) / (userData.plan === 'ultimate' ? 2000000 : userData.plan === 'pro' ? 750000 : userData.plan === 'starter' ? 150000 : 25000)) * 100))}% used this month
-                    </div>
-                  </div>
-
-                  {/* Daily Tokens */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-foreground dark:text-[#E6E4DF] font-medium">Daily Tokens</span>
-                      <span className="text-muted-foreground dark:text-[#8A8985]">
-                        {((userData.usage?.tokensUsedToday || 0) / 1000).toFixed(1)}k / {userData.plan === 'ultimate' ? '100k' : userData.plan === 'pro' ? '30k' : userData.plan === 'starter' ? '5k' : '2k'}
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full bg-muted dark:bg-[#1A1918] rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-blue-500 dark:bg-blue-400 transition-all duration-500 ease-out rounded-full"
-                        style={{ 
-                          width: `${Math.min(100, ((userData.usage?.tokensUsedToday || 0) / (userData.plan === 'ultimate' ? 100000 : userData.plan === 'pro' ? 30000 : userData.plan === 'starter' ? 5000 : 2000)) * 100)}%` 
-                        }}
-                      />
-                    </div>
-                    <div className="text-[11px] text-muted-foreground dark:text-[#8A8985] text-right">
-                      {Math.round(Math.min(100, ((userData.usage?.tokensUsedToday || 0) / (userData.plan === 'ultimate' ? 100000 : userData.plan === 'pro' ? 30000 : userData.plan === 'starter' ? 5000 : 2000)) * 100))}% used today
+                      {Math.round(Math.min(100, ((userData.usage?.tokensUsedThisMonth || 0) / (userData.plan === 'ultimate' ? 2000000 : userData.plan === 'pro' ? 750000 : 25000)) * 100))}% used this month
                     </div>
                   </div>
                 </div>
@@ -169,7 +148,7 @@ export default function PreferencesPage() {
                     <div className="bg-gradient-to-r from-primary/10 to-transparent dark:from-[#C36A4F]/10 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <h4 className="font-semibold text-primary dark:text-[#C36A4F] text-sm">Need more limits?</h4>
-                        <p className="text-xs text-muted-foreground dark:text-[#8A8985] mt-0.5">Upgrade your plan for higher daily allowances and premium models.</p>
+                        <p className="text-xs text-muted-foreground dark:text-[#8A8985] mt-0.5">Upgrade your plan for higher monthly allowances and premium models.</p>
                       </div>
                       <button 
                         onClick={() => window.location.href = '/upgrade'}

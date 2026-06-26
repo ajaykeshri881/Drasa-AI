@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth/auth";
 import { connectDB } from "@/lib/db/connection";
 import { Memory } from "@/lib/db/models/Memory";
 import { User } from "@/lib/db/models/User";
+import { upsertMemory } from "@/lib/ai/memory/vector-store";
+import { getRedis } from "@/lib/db/redis";
 
 export async function GET(req: Request) {
   try {
@@ -17,7 +19,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const memories = await Memory.find({ userId: user._id }).sort({ createdAt: -1 });
+    const memories = await Memory.find({ userId: { $in: [user._id, user._id.toString()] } }).sort({ createdAt: -1 });
     return NextResponse.json(memories);
   } catch (error) {
     console.error("Memory GET error:", error);
@@ -53,6 +55,12 @@ export async function POST(req: Request) {
       pineconeId
     });
 
+    try {
+      await upsertMemory(user._id.toString(), pineconeId, content, category || 'fact');
+    } catch (e) {
+      console.warn("Could not sync memory to vector store", e);
+    }
+
     return NextResponse.json(newMemory, { status: 201 });
   } catch (error) {
     console.error("Memory POST error:", error);
@@ -81,9 +89,23 @@ export async function DELETE(req: Request) {
     }
 
     if (id === 'all') {
-      await Memory.deleteMany({ userId: user._id });
+      const memories = await Memory.find({ userId: { $in: [user._id, user._id.toString()] } });
+      await Memory.deleteMany({ userId: { $in: [user._id, user._id.toString()] } });
+      try {
+        const redis = getRedis();
+        for (const mem of memories) {
+          await redis.del(`memory:${mem.pineconeId}`);
+        }
+      } catch (e) {}
     } else {
-      await Memory.findOneAndDelete({ _id: id, userId: user._id });
+      const memory = await Memory.findOne({ _id: id, userId: { $in: [user._id, user._id.toString()] } });
+      if (memory) {
+        await Memory.deleteOne({ _id: id });
+        try {
+          const redis = getRedis();
+          await redis.del(`memory:${memory.pineconeId}`);
+        } catch (e) {}
+      }
     }
 
     return NextResponse.json({ success: true });

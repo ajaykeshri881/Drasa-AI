@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/auth";
-import path from "path";
-import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+// Cloudinary config will automatically use CLOUDINARY_URL environment variable
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -49,31 +49,34 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ensure upload directory exists
-    if (!fs.existsSync(UPLOAD_DIR)) {
-      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    }
-
-    // Generate unique filename
-    const ext = path.extname(file.name);
-    const baseName = path.basename(file.name, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const uniqueName = `${baseName}_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, uniqueName);
-
-    // Write file to disk
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    fs.writeFileSync(filePath, buffer);
-
     // Determine file category
     let fileType: "image" | "file" | "audio" = "file";
     if (file.type.startsWith("image/")) fileType = "image";
     else if (file.type.startsWith("audio/")) fileType = "audio";
 
+    // Upload to Cloudinary
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const uploadResult: any = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'drasa-uploads',
+          resource_type: 'auto', // 'auto' handles raw files (pdf), images, video/audio automatically
+          public_id: `${file.name.split('.')[0].replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}`
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(buffer);
+    });
+
     return NextResponse.json({
       success: true,
       file: {
-        url: `/uploads/${uniqueName}`,
+        url: uploadResult.secure_url,
         name: file.name,
         type: fileType,
         mimeType: file.type,

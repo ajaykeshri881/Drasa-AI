@@ -26,38 +26,39 @@ export async function processMemory(job: Job<MemoryJobData>): Promise<any> {
     let extractedMemories: Array<{ content: string; category: string }> = [];
 
     try {
-        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-        if (!apiKey) {
-            throw new Error('No AI API key available for memory extraction');
+        const apiKey = process.env.OPENROUTER_API_KEY;
+        if (!apiKey || apiKey === "your_openrouter_api_key_here") {
+            throw new Error('No OpenRouter API key available for memory extraction');
         }
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+            `https://openrouter.ai/api/v1/chat/completions`,
             {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: `Analyze this conversation and extract any important facts, user preferences, rules, or project context that should be remembered for future conversations. Return ONLY a JSON array of objects with "content" (the memory) and "category" (one of: "preference", "fact", "rule", "project_context"). If nothing worth remembering, return an empty array [].
-
-Conversation:
-${conversationText}
-
-Return ONLY the JSON array, no other text.`
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.2,
-                        maxOutputTokens: 1024,
-                    }
+                    model: 'meta-llama/llama-3.1-8b-instruct:free',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a data extraction AI. Return ONLY a JSON array of objects with "content" (the memory) and "category" (one of: "preference", "fact", "rule", "project_context"). If nothing is worth remembering, return an empty array []. Do not output any markdown formatting or explanatory text.'
+                        },
+                        {
+                            role: 'user',
+                            content: `Analyze this conversation and extract any important facts, user preferences, rules, or project context that should be remembered for future conversations.\n\nConversation:\n${conversationText}`
+                        }
+                    ],
+                    temperature: 0.1,
                 }),
             }
         );
 
         if (response.ok) {
             const data = await response.json();
-            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+            const responseText = data.choices?.[0]?.message?.content || '[]';
             
             // Parse the JSON from the response
             const jsonMatch = responseText.match(/\[[\s\S]*\]/);
@@ -67,6 +68,11 @@ Return ONLY the JSON array, no other text.`
                 } catch (parseErr) {
                     console.warn(`[Job ${job.id}] Could not parse AI response as JSON`);
                 }
+            } else {
+                // Attempt raw parse just in case
+                try {
+                    extractedMemories = JSON.parse(responseText);
+                } catch (e) {}
             }
         } else {
             const errText = await response.text();
@@ -110,7 +116,7 @@ Return ONLY the JSON array, no other text.`
                 const vectorId = `auto_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
                 await Memory.create({
-                    userId,
+                    userId: new mongoose.Types.ObjectId(userId as string),
                     content: mem.content,
                     category,
                     pineconeId: vectorId, // Used as Redis vector key

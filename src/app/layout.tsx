@@ -22,7 +22,10 @@ export const metadata: Metadata = {
   authors: [{ name: "Ajay Keshri" }],
   creator: "Ajay Keshri",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" }
+    ],
   },
 };
 

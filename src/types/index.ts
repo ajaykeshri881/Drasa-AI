@@ -1,6 +1,6 @@
 // Global Types for Drasa AI
 
-export type PlanType = "free" | "starter" | "pro" | "ultimate";
+export type PlanType = "free" | "pro" | "ultimate";
 export type RoleType = "user" | "admin";
 
 export interface UserPreferences {

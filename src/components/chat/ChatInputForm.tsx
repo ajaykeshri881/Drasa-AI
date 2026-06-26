@@ -53,9 +53,21 @@ export function ChatInputForm({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   
   const [availableModels, setAvailableModels] = useState<ModelConfig[]>([]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsModeSelectorOpen(false);
+        setIsModelSelectorOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetch('/api/models')
@@ -123,6 +135,22 @@ export function ChatInputForm({
     setIsUploading(true);
     try {
       for (const file of Array.from(files)) {
+        // Optimistic UI update to show preview immediately
+        const tempId = Math.random().toString(36).substring(7);
+        const tempUrl = URL.createObjectURL(file);
+        const isImage = file.type.startsWith("image/");
+        
+        const tempFile: any = {
+          url: tempUrl,
+          name: file.name,
+          type: isImage ? "image" : file.type.startsWith("audio/") ? "audio" : "file",
+          mimeType: file.type,
+          size: file.size,
+          id: tempId
+        };
+        
+        setAttachedFiles(prev => [...prev, tempFile]);
+
         const formData = new FormData();
         formData.append("file", file);
 
@@ -133,9 +161,12 @@ export function ChatInputForm({
 
         if (res.ok) {
           const data = await res.json();
-          setAttachedFiles(prev => [...prev, data.file]);
+          // Replace temp file with actual uploaded file
+          setAttachedFiles(prev => prev.map(f => (f as any).id === tempId ? data.file : f));
           toast.success(`${file.name} attached`);
         } else {
+          // Remove temp file on error
+          setAttachedFiles(prev => prev.filter(f => (f as any).id !== tempId));
           const err = await res.json();
           toast.error(err.error || `Failed to upload ${file.name}`);
         }
@@ -144,13 +175,18 @@ export function ChatInputForm({
       toast.error("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
-      // Reset the input so the same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const removeFile = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachedFiles(prev => {
+      const file = prev[index];
+      if (file && file.url.startsWith("blob:")) {
+        URL.revokeObjectURL(file.url);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   // Voice Input Handler — Web Speech API
@@ -233,7 +269,7 @@ export function ChatInputForm({
   };
 
   return (
-    <div className="flex justify-center w-full bg-gradient-to-t from-background via-background to-transparent pt-10 pb-6 px-4 md:px-8 shrink-0">
+    <div className="flex justify-center w-full bg-gradient-to-t from-background via-background to-transparent pt-4 pb-6 px-2 md:pt-10 md:pb-6 md:px-8 shrink-0 z-20">
       {isVoiceModeActive && (
         <VoiceModeOverlay
           onClose={() => setIsVoiceModeActive(false)}
@@ -250,7 +286,7 @@ export function ChatInputForm({
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex justify-center z-20">
             <button
               onClick={stop}
-              className="flex items-center gap-2 bg-card dark:bg-[#2A2928] border border-border dark:border-[#33312E] hover:bg-accent dark:hover:bg-[#32302D] text-muted-foreground dark:text-[#A3A19C] text-xs font-medium px-4 py-2 rounded-full shadow-lg transition-all"
+              className="flex items-center gap-2 bg-destructive/10 dark:bg-red-500/10 border border-destructive/20 dark:border-red-500/20 hover:bg-destructive/20 dark:hover:bg-red-500/20 text-destructive dark:text-red-400 text-xs font-medium px-4 py-2 rounded-full shadow-lg transition-all"
             >
               <Square size={12} className="fill-current" /> Stop generating
             </button>
@@ -284,7 +320,7 @@ export function ChatInputForm({
                     className="flex items-center gap-2 bg-muted dark:bg-[#2A2928] border border-border/50 dark:border-[#33312E] rounded-xl px-3 py-1.5 text-xs group"
                   >
                     {file.type === "image" ? (
-                      <ImageIcon2 size={14} className="text-blue-500" />
+                      <img src={file.url} alt={file.name} className="w-5 h-5 rounded object-cover" />
                     ) : (
                       <FileText size={14} className="text-primary dark:text-[#C36A4F]" />
                     )}
@@ -366,7 +402,7 @@ export function ChatInputForm({
                 </Tooltip>
               </div>
               
-              <div className="flex items-center gap-2 relative">
+              <div className="flex items-center gap-2 relative" ref={dropdownRef}>
                 <button 
                   type="button" 
                   onClick={() => {
@@ -457,9 +493,9 @@ export function ChatInputForm({
                 
                 <button 
                   type="submit"
-                  disabled={!input.trim() || isLoading}
+                  disabled={!input.trim() || isLoading || isUploading}
                   className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
-                    input.trim() && !isLoading
+                    input.trim() && !isLoading && !isUploading
                       ? 'bg-primary dark:bg-[#C36A4F] text-white hover:bg-primary/90 shadow-lg scale-105' 
                       : 'bg-muted dark:bg-[#363532] text-muted-foreground dark:text-[#73726E] cursor-not-allowed'
                   }`}

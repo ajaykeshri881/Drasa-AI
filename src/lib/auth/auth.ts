@@ -54,20 +54,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return true;
     },
     async jwt({ token, user, trigger, session }) {
-      if (user) {
+      if (user || !token.id) {
         try {
           await connectDB();
-          const dbUser = await User.findOne({ email: user.email });
-          if (dbUser) {
-            token.id = dbUser._id.toString();
-            token.role = dbUser.role;
-            token.plan = dbUser.plan;
+          const email = user?.email || token.email;
+          if (email) {
+            const dbUser = await User.findOne({ email });
+            if (dbUser) {
+              token.id = dbUser._id.toString();
+              token.role = dbUser.role;
+              token.plan = dbUser.plan;
+            }
           }
         } catch (dbError) {
           console.warn("⚠️ Could not fetch user from MongoDB for JWT:", (dbError as Error).message);
           // Set defaults if DB is unavailable
-          token.role = "user";
-          token.plan = "free";
+          if (!token.role) token.role = "user";
+          if (!token.plan) token.plan = "free";
         }
       }
 

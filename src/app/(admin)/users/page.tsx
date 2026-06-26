@@ -159,12 +159,10 @@ export default function AdminUsersPage() {
                         className={`appearance-none cursor-pointer px-2.5 py-1 rounded-full text-[11px] font-medium uppercase tracking-wider border-0 outline-none transition-all ${
                           user.plan === 'ultimate' ? 'bg-amber-500/20 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
                           user.plan === 'pro' ? 'bg-primary/20 text-primary dark:bg-[#C36A4F]/20 dark:text-[#ff8d6e]' :
-                          user.plan === 'starter' ? 'bg-green-500/20 text-green-600 dark:bg-green-500/20 dark:text-green-400' :
                           'bg-muted text-muted-foreground dark:bg-[#33312E] dark:text-[#A3A19C]'
                         }`}
                       >
                         <option value="free">Free</option>
-                        <option value="starter">Starter</option>
                         <option value="pro">Pro</option>
                         <option value="ultimate">Ultimate</option>
                       </select>

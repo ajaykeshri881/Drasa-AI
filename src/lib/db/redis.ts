@@ -20,7 +20,9 @@ class RedisClient {
       }
 
       RedisClient.instance = new Redis(url, {
-        maxRetriesPerRequest: null,
+        maxRetriesPerRequest: 1,
+        connectTimeout: 3000,
+        commandTimeout: 3000,
       });
 
       RedisClient.instance.on("error", (error) => {

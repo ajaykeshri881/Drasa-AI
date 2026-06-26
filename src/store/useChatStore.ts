@@ -25,6 +25,7 @@ interface ChatState {
   togglePin: (id: string) => void;
   limitError: { title: string; message: string; isUpgrade: boolean } | null;
   setLimitError: (error: { title: string; message: string; isUpgrade: boolean } | null) => void;
+  loadChats: () => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -40,17 +41,50 @@ export const useChatStore = create<ChatState>()(
   setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
   setIsTemporaryChat: (isTemporary) => set({ isTemporaryChat: isTemporary }),
   addChat: (chat) => set((state) => ({ chats: [chat, ...state.chats] })),
-  removeChat: (id) =>
+  removeChat: (id) => {
     set((state) => ({
       chats: state.chats.filter((c) => c.id !== id),
       activeChatId: state.activeChatId === id ? null : state.activeChatId,
-    })),
-  clearAllChats: () => set({ chats: [], activeChatId: null }),
+    }));
+    fetch(`/api/chats/${id}`, { method: "DELETE" }).catch((e) =>
+      console.error(`Failed to delete chat ${id} on server`, e)
+    );
+  },
+  clearAllChats: () => {
+    set({ chats: [], activeChatId: null });
+    fetch('/api/chats', { method: "DELETE" }).catch((e) =>
+      console.error("Failed to clear chats on server", e)
+    );
+  },
   togglePin: (id) => set((state) => ({
     chats: state.chats.map((c) => c.id === id ? { ...c, isPinned: !c.isPinned } : c)
   })),
   limitError: null,
   setLimitError: (error) => set({ limitError: error }),
+  loadChats: async () => {
+    try {
+      const res = await fetch('/api/chats');
+      if (res.ok) {
+        const dbChats = await res.json();
+        // Keep local pinned status by merging
+        set((state) => {
+          const merged = dbChats.map((dbChat: any) => {
+            const local = state.chats.find(c => c.id === dbChat._id);
+            return {
+              id: dbChat._id,
+              title: dbChat.title,
+              mode: dbChat.mode,
+              updatedAt: new Date(dbChat.updatedAt),
+              isPinned: local?.isPinned || false
+            };
+          });
+          return { chats: merged };
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load chats from DB", e);
+    }
+  },
   }),
   {
     name: 'drasa-chat-storage',

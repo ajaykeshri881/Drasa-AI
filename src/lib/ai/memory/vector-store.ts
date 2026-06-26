@@ -74,6 +74,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not set");
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
       {
@@ -83,8 +86,11 @@ export async function generateEmbedding(text: string): Promise<number[]> {
           model: "models/text-embedding-004",
           content: { parts: [{ text }] },
         }),
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeout);
 
     if (!res.ok) {
       const errorText = await res.text();
@@ -148,64 +154,73 @@ export async function queryMemories(
   query: string,
   topK: number = 5
 ): Promise<Array<{ id: string; content: string; category: string; score: number }>> {
-  try {
-    const hasIndex = await ensureIndex();
-    if (!hasIndex) return [];
+  // Race against a 3-second timeout so a slow Redis/embedding call never blocks chat
+  const timeoutPromise = new Promise<Array<{ id: string; content: string; category: string; score: number }>>(
+    (resolve) => setTimeout(() => resolve([]), 3000)
+  );
 
-    const redis = getRedis();
-    const vector = await generateEmbedding(query);
-    const vectorBuffer = vectorToBuffer(vector);
+  const queryPromise = (async () => {
+    try {
+      const hasIndex = await ensureIndex();
+      if (!hasIndex) return [];
 
-    // Escape special characters in userId for TAG filter
-    const escapedUserId = userId.replace(/[^a-zA-Z0-9]/g, "\\$&");
+      const redis = getRedis();
+      const vector = await generateEmbedding(query);
+      const vectorBuffer = vectorToBuffer(vector);
 
-    const results = (await redis.call(
-      "FT.SEARCH",
-      INDEX_NAME,
-      `@userId:{${escapedUserId}}=>[KNN ${topK} @vector $vec_param AS score]`,
-      "PARAMS",
-      "2",
-      "vec_param",
-      vectorBuffer,
-      "SORTBY",
-      "score",
-      "ASC",
-      "LIMIT",
-      "0",
-      String(topK),
-      "DIALECT",
-      "2"
-    )) as any[];
+      // Escape special characters in userId for TAG filter
+      const escapedUserId = userId.replace(/[^a-zA-Z0-9]/g, "\\$&");
 
-    // FT.SEARCH returns: [totalCount, key1, [field1, val1, ...], key2, [...], ...]
-    if (!results || results[0] === 0) return [];
+      const results = (await redis.call(
+        "FT.SEARCH",
+        INDEX_NAME,
+        `@userId:{${escapedUserId}}=>[KNN ${topK} @vector $vec_param AS score]`,
+        "PARAMS",
+        "2",
+        "vec_param",
+        vectorBuffer,
+        "SORTBY",
+        "score",
+        "ASC",
+        "LIMIT",
+        "0",
+        String(topK),
+        "DIALECT",
+        "2"
+      )) as any[];
 
-    const memories: Array<{ id: string; content: string; category: string; score: number }> = [];
+      // FT.SEARCH returns: [totalCount, key1, [field1, val1, ...], key2, [...], ...]
+      if (!results || results[0] === 0) return [];
 
-    for (let i = 1; i < results.length; i += 2) {
-      const key = results[i] as string;
-      const fields = results[i + 1] as string[];
+      const memories: Array<{ id: string; content: string; category: string; score: number }> = [];
 
-      if (!fields) continue;
+      for (let i = 1; i < results.length; i += 2) {
+        const key = results[i] as string;
+        const fields = results[i + 1] as string[];
 
-      const fieldMap: Record<string, string> = {};
-      for (let j = 0; j < fields.length; j += 2) {
-        fieldMap[fields[j]] = fields[j + 1];
+        if (!fields) continue;
+
+        const fieldMap: Record<string, string> = {};
+        for (let j = 0; j < fields.length; j += 2) {
+          fieldMap[fields[j]] = fields[j + 1];
+        }
+
+        if (fieldMap.content) {
+          memories.push({
+            id: key.replace(KEY_PREFIX, ""),
+            content: fieldMap.content,
+            category: fieldMap.category || "fact",
+            score: fieldMap.score ? parseFloat(fieldMap.score) : 0,
+          });
+        }
       }
 
-      if (fieldMap.content) {
-        memories.push({
-          id: key.replace(KEY_PREFIX, ""),
-          content: fieldMap.content,
-          category: fieldMap.category || "fact",
-          score: fieldMap.score ? parseFloat(fieldMap.score) : 0,
-        });
-      }
+      return memories;
+    } catch (error) {
+      console.error("Redis vector query error:", error);
+      return [];
     }
+  })();
 
-    return memories;
-  } catch (error) {
-    console.error("Redis vector query error:", error);
-    return [];
-  }
+  return Promise.race([queryPromise, timeoutPromise]);
 }
