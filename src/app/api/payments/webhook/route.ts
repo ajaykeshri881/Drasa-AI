@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
 import { Payment } from "@/lib/db/models/Subscription";
-import { verifyWebhookSignature } from "@/lib/payments/razorpay";
+import { verifyWebhookSignature } from "@/features/payments/lib/razorpay";
 
 export async function POST(req: NextRequest) {
   try {

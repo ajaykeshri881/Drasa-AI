@@ -1,20 +1,6 @@
-export const SUBSCRIPTION_PLANS = {
-  free: {
-    monthlyTokens: 25000,
-    monthlyWebsites: 4,
-    name: "Free",
-  },
-  pro: {
-    monthlyTokens: 750000,
-    monthlyWebsites: 20,
-    name: "Pro",
-  },
-  ultimate: {
-    monthlyTokens: 2000000,
-    monthlyWebsites: 100,
-    name: "Ultimate",
-  },
-} as const;
+import { PLAN_LIMITS } from './constants';
+
+export const SUBSCRIPTION_PLANS = PLAN_LIMITS;
 
 export type PlanId = keyof typeof SUBSCRIPTION_PLANS;
 

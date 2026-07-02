@@ -18,6 +18,14 @@ export interface IAlert extends Document {
   updatedAt: Date;
 }
 
+export interface ISystemConfig extends Document {
+  defaultFallbackModelId: string;
+  defaultVisionModelId: string;
+  systemPromptBase: string; // Addendum instruction for all models
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IModelConfig extends Document {
   modelId: string; // e.g. 'google/gemini-2.5-pro'
   provider: "openrouter" | "gemini";
@@ -55,6 +63,18 @@ const AlertSchema = new Schema<IAlert>(
     actionUrl: { type: String },
     actionText: { type: String },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true }
+);
+
+const SystemConfigSchema = new Schema<ISystemConfig>(
+  {
+    defaultFallbackModelId: { type: String, default: "meta-llama/llama-3.3-70b-instruct:free" },
+    defaultVisionModelId: { type: String, default: "nvidia/nemotron-nano-12b-v2-vl:free" },
+    systemPromptBase: { 
+      type: String, 
+      default: "Keep your responses short to medium length unless the user explicitly asks for an in-depth explanation." 
+    },
   },
   { timestamps: true }
 );
@@ -98,4 +118,5 @@ const SponsorHighlightSchema = new Schema<ISponsorHighlight>(
 
 export const Alert = mongoose.models.Alert || mongoose.model<IAlert>("Alert", AlertSchema);
 export const ModelConfig = mongoose.models.ModelConfig || mongoose.model<IModelConfig>("ModelConfig", ModelConfigSchema);
+export const SystemConfig = mongoose.models.SystemConfig || mongoose.model<ISystemConfig>("SystemConfig", SystemConfigSchema);
 export const SponsorHighlight = mongoose.models.SponsorHighlight || mongoose.model<ISponsorHighlight>("SponsorHighlight", SponsorHighlightSchema);

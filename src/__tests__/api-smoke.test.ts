@@ -1,5 +1,5 @@
 import { DEFAULT_MODEL_CONFIGS } from "@/lib/ai/models";
-import { isPaidPlanId } from "@/lib/payments/razorpay";
+import { isPaidPlanId } from "@/features/payments/lib/razorpay";
 
 jest.mock("@/lib/db/connection", () => ({
   connectDB: jest.fn(),
@@ -13,7 +13,7 @@ jest.mock("@/lib/db/models/Admin", () => ({
   SponsorHighlight: {},
 }));
 
-jest.mock("@/lib/auth/auth", () => ({
+jest.mock("@/features/auth/lib/auth", () => ({
   auth: jest.fn(),
 }));
 
@@ -88,7 +88,7 @@ describe("chat API auth boundary", () => {
   });
 
   it("returns 403 when anonymous chat rate limit is exceeded", async () => {
-    const { auth } = await import("@/lib/auth/auth");
+    const { auth } = await import("@/features/auth/lib/auth");
     const { AnonymousUsage } = await import("@/lib/db/models/AnonymousUsage");
     const { POST } = await import("@/app/api/chat/route");
 
@@ -106,7 +106,7 @@ describe("chat API auth boundary", () => {
         data: {
           mode: "chat",
           provider: "openrouter",
-          modelId: "openai/gpt-oss-120b:free",
+          modelId: "meta-llama/llama-3.3-70b-instruct:free",
         },
       }),
     });
@@ -116,5 +116,18 @@ describe("chat API auth boundary", () => {
 
     expect(response.status).toBe(403);
     expect(body.error).toMatch(/free trial limit/i);
+  });
+});
+
+describe('attachment handler', () => {
+  it("switches to the default vision model when attachments are present and current model doesn't support vision", async () => {
+    const { handleAttachments } = await import('@/features/chat/lib/attachment-handler');
+    const { updatedModelId } = handleAttachments(
+      [{ role: 'user', content: 'test' }],
+      [{ url: 'test', mimeType: 'image/png', name: 'test.png' }],
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'openrouter'
+    );
+    expect(updatedModelId).toBe('gemini-3.5-flash');
   });
 });

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
-import { cancelSubscription } from "@/lib/payments/razorpay";
+import { cancelSubscription } from "@/features/payments/lib/razorpay";
 
 export async function POST(req: Request) {
   try {

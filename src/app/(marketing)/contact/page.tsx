@@ -3,7 +3,7 @@ import { LegalLayout } from "@/components/layout/LegalLayout";
 export default function ContactUs() {
   return (
     <LegalLayout title="Contact Us">
-      <p>We're here to help! Whether you have a question about your subscription, need technical support, or just want to share feedback, we'd love to hear from you.</p>
+      <p>We&apos;re here to help! Whether you have a question about your subscription, need technical support, or just want to share feedback, we&apos;d love to hear from you.</p>
 
       <h2>Email Support</h2>
       <p>You can reach our primary support channel at:</p>

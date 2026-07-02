@@ -53,6 +53,7 @@ next-env.d.ts
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+graphify-out
 *.swp
 *.swo
 
@@ -62,3 +63,13 @@ Thumbs.db
 
 # Turborepo
 .turbo
+.agents
+
+# Caches
+.eslintcache
+.stylelintcache
+.npm/
+
+# Packages
+*.tgz
+*.log

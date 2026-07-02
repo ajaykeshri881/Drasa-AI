@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
-import { isPaidPlanId, verifyPaymentSignature, verifySubscriptionSignature } from "@/lib/payments/razorpay";
+import { isPaidPlanId, verifyPaymentSignature, verifySubscriptionSignature } from "@/features/payments/lib/razorpay";
 
 export async function POST(req: Request) {
   try {
@@ -38,9 +38,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Payment verification failed. Invalid signature." }, { status: 400 });
     }
 
-    // Calculate plan expiry date (30 days from now)
-    const planExpiryDate = new Date();
+    let planExpiryDate = new Date();
     planExpiryDate.setDate(planExpiryDate.getDate() + 30);
+
+    if (razorpay_subscription_id) {
+      try {
+        const { getRazorpayClient } = await import("@/features/payments/lib/razorpay");
+        const client = getRazorpayClient();
+        const sub = await client.subscriptions.fetch(razorpay_subscription_id);
+        if (sub && sub.current_end) {
+          planExpiryDate = new Date(sub.current_end * 1000);
+        }
+      } catch (e) {
+        console.error("Failed to fetch exact subscription expiry:", e);
+      }
+    }
 
     // Payment is verified! Update the user's plan in DB
     const updateData: any = {

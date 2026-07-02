@@ -10,7 +10,7 @@ export default function AboutUs() {
       <p>Our mission is to democratize access to elite-level pair programming. We believe that by removing the friction from the coding process, developers can focus on what truly matters: creativity and architecture.</p>
 
       <h2>The Technology</h2>
-      <p>Drasa AI utilizes cutting-edge routing technologies to connect you with the world's most powerful AI models, from Gemini to open-source giants. Combined with our custom memory and tool-use architecture, it's a completely unique experience.</p>
+      <p>Drasa AI utilizes cutting-edge routing technologies to connect you with the world&apos;s most powerful AI models, from Gemini to open-source giants. Combined with our custom memory and tool-use architecture, it&apos;s a completely unique experience.</p>
       
       <p>Created by Ajay Keshri.</p>
     </LegalLayout>

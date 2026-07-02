@@ -32,7 +32,7 @@ const UserSchema = new Schema<IUser>(
       thinkingMode: { type: Boolean, default: false },
       temporaryChat: { type: Boolean, default: false },
       ttsEnabled: { type: Boolean, default: false },
-      defaultModel: { type: String, default: "openai/gpt-oss-120b:free" },
+      defaultModel: { type: String, default: "meta-llama/llama-3.3-70b-instruct:free" },
       showSponsorHighlights: { type: Boolean, default: false },
     },
     usage: {
@@ -44,6 +44,7 @@ const UserSchema = new Schema<IUser>(
       imagesUsedToday: { type: Number, default: 0 },
       toolsUsedToday: { type: Number, default: 0 },
       websiteGenerationsUsed: { type: Number, default: 0 },
+      bytesUploadedToday: { type: Number, default: 0 },
       lastResetDate: { type: Date, default: Date.now },
       lastMonthlyResetDate: { type: Date, default: Date.now },
     },

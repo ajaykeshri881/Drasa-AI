@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 import { v2 as cloudinary } from "cloudinary";
+import { connectDB } from "@/lib/db/connection";
+import { User } from "@/lib/db/models/User";
+import { getPlanLimits } from "@/lib/config/plans";
 
 // Cloudinary config will automatically use CLOUDINARY_URL environment variable
 
@@ -33,11 +36,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate file size
+    // Validate file size against max chunk size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB` },
         { status: 400 }
+      );
+    }
+
+    await connectDB();
+    const user = await User.findById(session.user.id);
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const limits = getPlanLimits(user.plan);
+    const maxDailyUploadBytes = limits.dailyUploadBytes;
+    const currentBytesToday = user.usage?.bytesUploadedToday || 0;
+
+    // Check last reset date
+    const lastReset = user.usage?.lastResetDate ? new Date(user.usage.lastResetDate) : new Date(0);
+    const now = new Date();
+    
+    // If different day, reset counters (ideally done via cron, but inline works as fallback)
+    const isSameDay = lastReset.toDateString() === now.toDateString();
+    const effectiveBytesToday = isSameDay ? currentBytesToday : 0;
+
+    if (effectiveBytesToday + file.size > maxDailyUploadBytes) {
+      return NextResponse.json(
+        { error: `Upload quota exceeded. You have ${Math.max(0, (maxDailyUploadBytes - effectiveBytesToday) / 1024 / 1024).toFixed(2)}MB remaining today.` },
+        { status: 429 }
       );
     }
 
@@ -72,6 +100,13 @@ export async function POST(req: Request) {
       );
       uploadStream.end(buffer);
     });
+
+    // Update usage bytes
+    const updateQuery = isSameDay 
+      ? { $inc: { "usage.bytesUploadedToday": file.size }, $set: { "usage.lastResetDate": now } }
+      : { $set: { "usage.bytesUploadedToday": file.size, "usage.lastResetDate": now } };
+
+    await User.findByIdAndUpdate(session.user.id, updateQuery);
 
     return NextResponse.json({
       success: true,

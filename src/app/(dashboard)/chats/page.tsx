@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MainLayout } from "@/components/layout/MainLayout";
-import { useChatStore } from "@/store/useChatStore";
+import { useChatStore } from "@/features/chat/store/useChatStore";
 import Link from 'next/link';
-import { MessageSquare, Trash2, Search, Calendar, ChevronRight } from 'lucide-react';
+import { MessageSquare, Trash2, Search, Calendar, ChevronRight, Globe, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ShareDialog } from '@/features/chat/components/ShareDialog';
 
 export default function AllChatsPage() {
-  const { chats, removeChat, clearAllChats } = useChatStore();
+  const { chats, removeChat, clearAllChats, isTemporaryChat } = useChatStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [displayCount, setDisplayCount] = useState(10);
+  const [sharingChatId, setSharingChatId] = useState<string | null>(null);
 
   const filteredChats = chats.filter(chat => 
     chat.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -24,6 +25,12 @@ export default function AllChatsPage() {
     toast.success("Chat deleted");
   };
 
+  const handleShare = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSharingChatId(id);
+  };
+
   const handleClearAll = () => {
     if (window.confirm("Are you sure you want to delete all chats? This cannot be undone.")) {
       chats.forEach(chat => localStorage.removeItem(`drasa_chat_${chat.id}`));
@@ -33,7 +40,7 @@ export default function AllChatsPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="flex-1 overflow-y-auto w-full pt-16 relative z-10 bg-background/50 dark:bg-[#1A1918]/50">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
           
@@ -87,9 +94,17 @@ export default function AllChatsPage() {
                         <MessageSquare size={18} className="sm:w-5 sm:h-5" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-medium text-foreground dark:text-[#E6E4DF] truncate text-[14px] sm:text-[15px] mb-1 group-hover:text-primary dark:group-hover:text-[#C36A4F] transition-colors">
-                          {chat.title}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-medium text-foreground dark:text-[#E6E4DF] truncate text-[14px] sm:text-[15px] group-hover:text-primary dark:group-hover:text-[#C36A4F] transition-colors">
+                            {chat.title}
+                          </h3>
+                          {chat.isPublic && (
+                            <span className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium">
+                              <Globe size={9} />
+                              Public
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-3 text-[11px] sm:text-xs text-muted-foreground dark:text-[#8A8985]">
                           <span className="flex items-center gap-1 shrink-0">
                             <Calendar size={12} />
@@ -105,6 +120,14 @@ export default function AllChatsPage() {
                     </div>
                     
                     <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Share button */}
+                      <button 
+                        onClick={(e) => handleShare(e, chat.id)}
+                        className="p-1.5 sm:p-2 text-muted-foreground hover:text-primary dark:text-[#8A8985] dark:hover:text-[#C36A4F] hover:bg-primary/10 dark:hover:bg-[#C36A4F]/10 rounded-lg transition-colors"
+                        title="Share chat"
+                      >
+                        <Share2 size={15} />
+                      </button>
                       <button 
                         onClick={(e) => handleDelete(e, chat.id)}
                         className="p-1.5 sm:p-2 text-muted-foreground hover:text-destructive dark:text-[#8A8985] dark:hover:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/20 rounded-lg transition-colors"
@@ -133,6 +156,15 @@ export default function AllChatsPage() {
 
         </div>
       </div>
-    </MainLayout>
+
+      {/* Share Dialog — triggered from the chat list */}
+      {sharingChatId && (
+        <ShareDialog
+          chatId={sharingChatId}
+          isTemporaryChat={isTemporaryChat}
+          onClose={() => setSharingChatId(null)}
+        />
+      )}
+    </>
   );
 }

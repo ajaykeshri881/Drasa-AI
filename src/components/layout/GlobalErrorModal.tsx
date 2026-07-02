@@ -1,8 +1,8 @@
 "use client";
 
-import { useChatStore } from "@/store/useChatStore";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { useChatStore } from "@/features/chat/store/useChatStore";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/overlay/dialog";
+import { Button } from "@/components/ui/inputs/button";
 import { ShieldAlert, ServerOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 

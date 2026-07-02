@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db/connection";
 import { Chat, Message } from "@/lib/db/models/Chat";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 
 export async function GET(req: Request) {
   try {
@@ -14,11 +14,13 @@ export async function GET(req: Request) {
     if (!userId) {
       const guestId = req.headers.get("x-guest-id");
       if (guestId) userId = guestId;
-      else return NextResponse.json([]);
+      else {
+        userId = req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown";
+      }
     }
 
     await connectDB();
-    const chats = await Chat.find({ userId }).sort({ updatedAt: -1 }).select("-__v");
+    const chats = await Chat.find({ userId, isDeleted: { $ne: true } }).sort({ updatedAt: -1 }).select("-__v");
     
     return NextResponse.json(chats);
   } catch (error: any) {
@@ -35,15 +37,15 @@ export async function DELETE(req: Request) {
     if (!userId) {
       const guestId = req.headers.get("x-guest-id");
       if (guestId) userId = guestId;
-      else return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      else {
+        userId = req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown";
+      }
     }
 
     await connectDB();
-    const chats = await Chat.find({ userId });
-    const chatIds = chats.map(c => c._id);
+    await Chat.updateMany({ userId }, { $set: { isDeleted: true } });
     
-    await Message.deleteMany({ chatId: { $in: chatIds } });
-    await Chat.deleteMany({ userId });
+    // Soft deletes so we do not delete messages
     
     return NextResponse.json({ success: true });
   } catch (error: any) {

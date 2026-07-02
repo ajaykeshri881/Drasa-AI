@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { Check, Sparkles, Shield, Loader2 } from "lucide-react";
+import { Check, Shield, Loader2, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import Script from "next/script";
@@ -39,7 +38,7 @@ const PRICING_TIERS = [
       "Advanced Coding Expert Mode",
       "Real-time Voice Mode",
     ],
-    icon: <Sparkles size={24} />,
+    icon: <Zap size={24} />,
     color: "text-primary dark:text-[#C36A4F]",
     bg: "bg-primary/10 dark:bg-[#C36A4F]/10 border-primary/30 dark:border-[#C36A4F]/30"
   },
@@ -56,7 +55,7 @@ const PRICING_TIERS = [
       "Real-time Voice Mode",
       "Advanced Coding Expert Mode",
     ],
-    icon: <Sparkles size={24} />,
+    icon: <Zap size={24} />,
     color: "text-amber-500",
     bg: "bg-amber-500/10 border-amber-500/20"
   }
@@ -151,7 +150,7 @@ export default function UpgradePage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="beforeInteractive" />
       <div className="flex-1 overflow-y-auto w-full pt-16 relative z-10 bg-background/50 dark:bg-[#1A1918]/50">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-12 pb-20">
@@ -271,6 +270,6 @@ export default function UpgradePage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }

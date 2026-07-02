@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
-import { createOrder, createSubscription, isPaidPlanId } from "@/lib/payments/razorpay";
+import { auth } from "@/features/auth/lib/auth";
+import { createOrder, createSubscription, isPaidPlanId } from "@/features/payments/lib/razorpay";
+import { CreateOrderSchema } from "@/lib/validations/api";
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +11,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { planId, autoPay } = body;
+    const parsedData = CreateOrderSchema.safeParse(body);
+
+    if (!parsedData.success) {
+      return NextResponse.json({ error: parsedData.error.errors[0].message }, { status: 400 });
+    }
+
+    const { planId, autoPay } = parsedData.data;
 
     if (!isPaidPlanId(planId)) {
       return NextResponse.json({ error: "Invalid paid plan" }, { status: 400 });
