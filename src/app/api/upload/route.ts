@@ -86,11 +86,16 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Determine Cloudinary resource type to prevent 401 Unauthorized on PDFs
+    const cloudinaryResourceType = (file.type === 'application/pdf' || file.name.endsWith('.md') || file.name.endsWith('.txt')) 
+      ? 'raw' 
+      : 'auto';
+
     const uploadResult: any = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'drasa-uploads',
-          resource_type: 'auto', // 'auto' handles raw files (pdf), images, video/audio automatically
+          resource_type: cloudinaryResourceType,
           public_id: `${file.name.split('.')[0].replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}`
         },
         (error, result) => {

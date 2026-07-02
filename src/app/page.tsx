@@ -29,7 +29,8 @@ export default function Home() {
     artifactCode,
     setArtifactCode,
     handleSuggestionClick,
-    append
+    append,
+    setInput
   } = useChatSession();
 
   return (
@@ -66,6 +67,7 @@ export default function Home() {
                 stop={stop}
                 messages={messages}
                 append={append}
+                setInput={setInput}
               />
             </div>
           </div>

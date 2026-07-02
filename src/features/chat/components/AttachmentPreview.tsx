@@ -1,5 +1,5 @@
 import React from "react";
-import { FileText, X } from "lucide-react";
+import { FileText, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 
 interface UploadedFile {
@@ -37,8 +37,13 @@ export function AttachmentPreview({ files, onRemove }: AttachmentPreviewProps) {
           ) : (
             <FileText size={14} className="text-primary dark:text-[#C36A4F] z-10" />
           )}
-          <span className="text-foreground/80 dark:text-[#D4D2CD] max-w-[120px] truncate z-10">
+          <span className="text-foreground/80 dark:text-[#D4D2CD] max-w-[120px] truncate z-10 flex items-center gap-1">
             {file.name}
+            {file.progress !== undefined && file.progress < 100 && (
+              <span className="text-[10px] text-primary font-medium ml-1 flex items-center gap-1">
+                <Loader2 size={10} className="animate-spin" /> {file.progress}%
+              </span>
+            )}
           </span>
           <button
             type="button"
