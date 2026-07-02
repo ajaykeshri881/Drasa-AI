@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useChatSession } from '@/hooks/use-chat-session';
-import { MainLayout } from "@/components/layout/MainLayout";
-import { ChatArea } from "@/components/chat/ChatArea";
+import { useChatSession } from '@/features/chat/hooks/use-chat-session';
+import { ChatArea } from "@/features/chat/components/ChatArea";
 import { SplitPaneLayout } from "@/components/layout/SplitPaneLayout";
-import { WebsitePreview } from "@/components/artifacts/WebsitePreview";
-import { ChatInputForm } from "@/components/chat/ChatInputForm";
-import { useSettingsStore } from '@/store/useSettingsStore';
-import { useChatStore } from '@/store/useChatStore';
+import { WebsitePreview } from "@/features/artifacts/components/WebsitePreview";
+import { ChatInputForm } from "@/features/chat/components/ChatInputForm";
+import { useSettingsStore } from '@/features/settings/store/useSettingsStore';
+import { useChatStore } from '@/features/chat/store/useChatStore';
 import { AI_MODES } from '@/lib/ai/prompts/modes';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -34,7 +33,7 @@ export default function Home() {
   } = useChatSession();
 
   return (
-    <MainLayout>
+    <>
       <SplitPaneLayout
         isArtifactActive={isArtifactOpen}
         onClosePreview={() => setIsArtifactOpen(false)}
@@ -72,6 +71,6 @@ export default function Home() {
           </div>
         }
       />
-    </MainLayout>
+    </>
   );
 }

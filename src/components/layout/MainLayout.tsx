@@ -1,10 +1,10 @@
 "use client";
 
-import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
+import { Sidebar } from "./sidebar";
+import { Header } from "./header";
 import { NotificationBanner } from "./NotificationBanner";
 import { useEffect } from "react";
-import { useAdminStore } from "@/store/useAdminStore";
+import { useAdminStore } from "@/features/admin/store/useAdminStore";
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const { setActiveAlerts } = useAdminStore();

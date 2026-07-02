@@ -1,8 +1,7 @@
 import React from "react";
 import { Check } from "lucide-react";
-import { CheckoutButton } from "@/components/payments/CheckoutButton";
-import { MainLayout } from "@/components/layout/MainLayout";
-import { auth } from "@/lib/auth/auth";
+import { CheckoutButton } from "@/features/payments/components/CheckoutButton";
+import { auth } from "@/features/auth/lib/auth";
 import Link from "next/link";
 
 export const metadata = {
@@ -14,7 +13,7 @@ export default async function PricingPage() {
   const currentPlan = session?.user?.plan || "free";
   
   return (
-    <MainLayout>
+    <>
       <div className="min-h-screen bg-background dark:bg-[#1A1918] py-20 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none opacity-50"></div>
         
@@ -129,7 +128,7 @@ export default async function PricingPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }
 

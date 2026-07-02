@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { AlertCircle, AlertTriangle, Bell, Info, ShieldAlert, X } from "lucide-react";
-import { useAdminStore, AdminAlert } from "@/store/useAdminStore";
+import { useAdminStore, AdminAlert } from "@/features/admin/store/useAdminStore";
 
 export function NotificationBanner() {
   const { activeAlerts, dismissAlert } = useAdminStore();

@@ -3,9 +3,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/feedback/sonner";
+import { TooltipProvider } from "@/components/ui/feedback/tooltip";
 import { GlobalErrorModal } from "@/components/layout/GlobalErrorModal";
+import { ClientLayoutWrapper } from "@/components/layout/ClientLayoutWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,7 +56,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <TooltipProvider>
-              {children}
+              <ClientLayoutWrapper>
+                {children}
+              </ClientLayoutWrapper>
               <Toaster position="top-center" />
               <GlobalErrorModal />
             </TooltipProvider>

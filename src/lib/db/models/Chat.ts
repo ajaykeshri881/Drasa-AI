@@ -27,6 +27,9 @@ export interface IChat {
   mode: string; // chat, code, reasoning, vision, web
   folderId?: mongoose.Types.ObjectId;
   status: "generating" | "completed" | "failed";
+  isDeleted: boolean;
+  isPublic: boolean;  // whether the chat is publicly shareable
+  sharedAt?: Date;    // when the chat was first made public
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,7 +39,7 @@ const MessageSchema = new Schema<IMessage>(
     _id: { type: String, required: true },
     chatId: { type: String, ref: "Chat", required: true, index: true },
     role: { type: String, enum: ["user", "assistant", "system", "tool"], required: true },
-    content: { type: String, required: true },
+    content: { type: String, default: "" },
     model: { type: String, required: true },
     toolCalls: { type: Schema.Types.Mixed },
     toolResults: { type: Schema.Types.Mixed },
@@ -53,6 +56,8 @@ const MessageSchema = new Schema<IMessage>(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+MessageSchema.index({ chatId: 1, createdAt: 1 });
+
 const ChatSchema = new Schema<IChat>(
   {
     _id: { type: String, required: true },
@@ -63,6 +68,9 @@ const ChatSchema = new Schema<IChat>(
     mode: { type: String, default: "chat" },
     folderId: { type: Schema.Types.ObjectId, ref: "Folder" },
     status: { type: String, enum: ["generating", "completed", "failed"], default: "completed" },
+    isDeleted: { type: Boolean, default: false },
+    isPublic: { type: Boolean, default: false, index: true },
+    sharedAt: { type: Date },
   },
   { timestamps: true }
 );

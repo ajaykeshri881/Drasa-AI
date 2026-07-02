@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Brain, Trash2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -94,7 +93,7 @@ export default function MemoryPage() {
   ];
 
   return (
-    <MainLayout>
+    <>
       <div className="flex-1 overflow-y-auto w-full pt-16 relative z-10 bg-background/50 dark:bg-[#1A1918]/50">
         <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 pb-20">
           
@@ -208,6 +207,6 @@ export default function MemoryPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }

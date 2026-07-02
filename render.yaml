@@ -1,0 +1,19 @@
+services:
+  - type: worker
+    name: drasa-ai-worker
+    env: docker
+    dockerfilePath: ./Dockerfile.worker
+    plan: starter
+    envVars:
+      - key: REDIS_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GOOGLE_GENERATIVE_AI_API_KEY
+        sync: false
+      - key: PINECONE_API_KEY
+        sync: false
+      - key: PINECONE_INDEX
+        sync: false

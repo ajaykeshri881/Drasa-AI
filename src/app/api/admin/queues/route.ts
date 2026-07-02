@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 import { documentQueue, memoryQueue, longTaskQueue, embeddingQueue } from "@/lib/queue/queues";
 
 const queues: Record<string, any> = {

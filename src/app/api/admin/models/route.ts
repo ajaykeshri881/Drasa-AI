@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 import { connectDB } from "@/lib/db/connection";
 import { ModelConfig } from "@/lib/db/models/Admin";
+import { AdminModelSchema, AdminModelUpdateSchema } from "@/lib/validations/api";
 
 export async function GET() {
   try {
@@ -28,11 +29,13 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { modelId, provider, name, description, isPremium, contextWindow, visionSupport, toolSupport } = body;
+    const parsedData = AdminModelSchema.safeParse(body);
 
-    if (!modelId || !provider || !name) {
-      return NextResponse.json({ error: "modelId, provider, and name are required" }, { status: 400 });
+    if (!parsedData.success) {
+      return NextResponse.json({ error: parsedData.error.errors[0].message }, { status: 400 });
     }
+
+    const { modelId, provider, name, description, isPremium, contextWindow, visionSupport, toolSupport } = parsedData.data;
 
     await connectDB();
     const model = await ModelConfig.create({
@@ -55,11 +58,13 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { modelId, ...updates } = body;
+    const parsedData = AdminModelUpdateSchema.safeParse(body);
 
-    if (!modelId) {
-      return NextResponse.json({ error: "modelId is required" }, { status: 400 });
+    if (!parsedData.success) {
+      return NextResponse.json({ error: parsedData.error.errors[0].message }, { status: 400 });
     }
+
+    const { modelId, ...updates } = parsedData.data;
 
     await connectDB();
     const updated = await ModelConfig.findOneAndUpdate(

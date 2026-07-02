@@ -22,6 +22,7 @@ export interface UserUsage {
   imagesUsedToday: number;
   toolsUsedToday: number;
   websiteGenerationsUsed: number;
+  bytesUploadedToday: number;
   lastResetDate: Date;
   lastMonthlyResetDate: Date;
 }

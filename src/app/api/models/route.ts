@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db/connection";
-import { ModelConfig } from "@/lib/db/models/Admin";
-import { DEFAULT_MODEL_CONFIGS } from "@/lib/ai/models";
+import { getActiveModelConfigs } from "@/lib/ai/config";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    await connectDB();
-    
-    // Fetch all active models
-    const activeModels = await ModelConfig.find({ isActive: true }).sort({ isPremium: 1, name: 1 });
-    
-    return NextResponse.json(activeModels.length > 0 ? activeModels : DEFAULT_MODEL_CONFIGS);
+    const activeModels = await getActiveModelConfigs();
+    return NextResponse.json(activeModels);
   } catch (error: any) {
     console.error("Models GET Error:", error);
+    const { DEFAULT_MODEL_CONFIGS } = await import("@/lib/ai/models");
     return NextResponse.json(DEFAULT_MODEL_CONFIGS);
   }
 }

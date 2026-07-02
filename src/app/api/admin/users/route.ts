@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth/auth";
+import { auth } from "@/features/auth/lib/auth";
 import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
-import { cancelSubscription } from "@/lib/payments/razorpay";
+import { cancelSubscription } from "@/features/payments/lib/razorpay";
 import { isValidPlan } from "@/lib/config/plans";
+import { AdminUserUpdateSchema } from "@/lib/validations/api";
+import { AdminAction } from "@/lib/db/models/AdminAction";
 
 export async function GET(req: Request) {
   try {
@@ -69,11 +71,13 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { userId, plan, role } = body;
+    const parsedData = AdminUserUpdateSchema.safeParse(body);
 
-    if (!userId) {
-      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    if (!parsedData.success) {
+      return NextResponse.json({ error: parsedData.error.errors[0].message }, { status: 400 });
     }
+
+    const { userId, plan, role } = parsedData.data;
 
     const updates: Record<string, any> = {};
     const unsets: Record<string, any> = {};
@@ -124,6 +128,24 @@ export async function PATCH(req: Request) {
 
     if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (plan) {
+      await AdminAction.create({
+        adminId: session.user.id,
+        actionType: "UPDATE_USER_PLAN",
+        targetId: userId,
+        metadata: { newPlan: plan }
+      });
+    }
+
+    if (role) {
+      await AdminAction.create({
+        adminId: session.user.id,
+        actionType: "UPDATE_USER_ROLE",
+        targetId: userId,
+        metadata: { newRole: role }
+      });
     }
 
     return NextResponse.json({ success: true, user: updatedUser });

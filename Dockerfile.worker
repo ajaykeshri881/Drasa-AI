@@ -1,0 +1,18 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+# We only need to run TS execution, but having the full source is safe
+
+# Runner stage
+FROM node:20-alpine
+
+WORKDIR /app
+COPY --from=builder /app /app
+
+# The worker script is invoked via tsx in the package.json script
+CMD ["npm", "run", "worker"]

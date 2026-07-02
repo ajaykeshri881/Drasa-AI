@@ -1,5 +1,6 @@
 import { getGeminiModel } from "../providers/gemini";
 import { createOpenAI } from '@ai-sdk/openai';
+import { getGlobalSystemConfig } from "../config";
 
 export type AIProvider = "openrouter" | "gemini";
 
@@ -23,14 +24,21 @@ export class AIRouter {
   }
 
   /**
-   * Smart fallback routing: 
-   * All fallbacks use free OpenRouter models to avoid credit/key issues.
+   * Smart fallback routing using DB-driven global config.
    */
-  public static getFallbackModel(primaryModelId: string): { provider: AIProvider; modelId: string } {
-    if (primaryModelId.includes("claude") || primaryModelId.includes("gpt-4o")) {
-      return { provider: "openrouter", modelId: "google/gemma-4-26b-a4b-it:free" };
+  public static async getFallbackModel(primaryModelId: string): Promise<{ provider: AIProvider; modelId: string }> {
+    const systemConfig = await getGlobalSystemConfig();
+    
+    // Check if the primary model is likely a vision/multimodal request
+    if (primaryModelId.includes("claude") || primaryModelId.includes("gpt-4o") || primaryModelId.includes("vision")) {
+      return { provider: "openrouter", modelId: systemConfig.defaultVisionModelId };
     }
-
-    return { provider: "openrouter", modelId: "google/gemma-4-31b-it:free" };
+    
+    // Bi-directional fallback logic as requested by user
+    if (primaryModelId.includes("gemini")) {
+      return { provider: "openrouter", modelId: "openai/gpt-oss-120b:free" };
+    } else {
+      return { provider: "gemini", modelId: "gemini-3.5-flash" };
+    }
   }
 }
