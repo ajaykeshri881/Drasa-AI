@@ -37,6 +37,7 @@ interface ChatInputFormProps {
   stop: () => void;
   messages: Message[];
   append: (message: any, options?: any) => Promise<string | null | undefined>;
+  setInput?: (input: string) => void;
 }
 
 export function ChatInputForm({
@@ -46,7 +47,8 @@ export function ChatInputForm({
   isLoading,
   stop,
   messages,
-  append
+  append,
+  setInput
 }: ChatInputFormProps) {
   const { defaultMode, setDefaultMode, defaultModelId, setDefaultModelId, enterToSend } = useSettingsStore();
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
@@ -98,21 +100,43 @@ export function ChatInputForm({
     }
   }, [input]);
 
+  const submitMessage = (overrideInput?: string) => {
+    const textToSubmit = overrideInput !== undefined ? overrideInput : input.trim();
+    if (textToSubmit && !isLoading) {
+      const attachments = attachedFiles.map(f => ({
+        url: f.url,
+        contentType: f.mimeType,
+        name: f.name
+      }));
+
+      append({
+        role: 'user',
+        content: textToSubmit,
+        experimental_attachments: attachments.length > 0 ? attachments : undefined
+      }, {
+        data: {
+          mode: defaultMode,
+          provider: defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
+          modelId: defaultModelId,
+          hasAttachments: attachedFiles.length > 0,
+          attachments: attachedFiles,
+        }
+      });
+      
+      setAttachedFiles([]);
+      if (setInput) {
+        setInput("");
+      } else {
+        const syntheticEvent = { target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>;
+        handleInputChange(syntheticEvent);
+      }
+    }
+  };
+
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey && enterToSend) {
       e.preventDefault();
-      if (input.trim() && !isLoading) {
-        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>, {
-          data: {
-            mode: defaultMode,
-            provider: defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
-            modelId: defaultModelId,
-            hasAttachments: attachedFiles.length > 0,
-            attachments: attachedFiles,
-          }
-        });
-        setAttachedFiles([]);
-      }
+      submitMessage();
     }
   };
 
@@ -260,16 +284,7 @@ export function ChatInputForm({
       setIsRecording(false);
       const currentInput = textareaRef.current?.value.trim();
       if (currentInput && !isLoading) {
-        handleSubmit({ preventDefault: () => {} } as any, {
-          data: {
-            mode: defaultMode,
-            provider: defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
-            modelId: defaultModelId,
-            hasAttachments: attachedFiles.length > 0,
-            attachments: attachedFiles,
-          }
-        });
-        setAttachedFiles([]);
+        submitMessage(currentInput);
       }
     };
 
@@ -306,16 +321,7 @@ export function ChatInputForm({
         <form 
           onSubmit={(e) => {
             e.preventDefault();
-            handleSubmit(e, {
-              data: {
-                mode: defaultMode,
-                provider: defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
-                modelId: defaultModelId,
-                hasAttachments: attachedFiles.length > 0,
-                attachments: attachedFiles,
-              }
-            });
-            setAttachedFiles([]);
+            submitMessage();
           }} 
           className="relative z-10"
         >

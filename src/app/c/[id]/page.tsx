@@ -28,7 +28,8 @@ export default function ChatHistoryPage({ params }: { params: Promise<{ id: stri
     setArtifactCode,
     handleSuggestionClick,
     isLoaded,
-    append
+    append,
+    setInput
   } = useChatSession({ id: chatId });
 
   if (!isLoaded) return <Loading />;
@@ -65,6 +66,7 @@ export default function ChatHistoryPage({ params }: { params: Promise<{ id: stri
                 stop={stop}
                 messages={messages}
                 append={append}
+                setInput={setInput}
               />
             </div>
           </div>
