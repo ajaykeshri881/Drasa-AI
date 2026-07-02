@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Prevent Next.js from trying to bundle server-only packages
   serverExternalPackages: ["mongoose", "ioredis"],
 
