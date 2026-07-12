@@ -1,5 +1,5 @@
 import { handlers } from "@/features/auth/lib/auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ const VALID_AUTH_ACTIONS = new Set([
   "error",
 ]);
 
-function isValidAuthRequest(req: Request): boolean {
+function isValidAuthRequest(req: NextRequest): boolean {
   const url = new URL(req.url);
   // Extract the action segment: /api/auth/<action>/...
   const segments = url.pathname.split("/").filter(Boolean);
@@ -23,16 +23,16 @@ function isValidAuthRequest(req: Request): boolean {
   return !!action && VALID_AUTH_ACTIONS.has(action);
 }
 
-export async function GET(req: Request, ctx: { params: Promise<{ nextauth: string[] }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ nextauth: string[] }> }) {
   if (!isValidAuthRequest(req)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return handlers.GET(req, ctx);
+  return handlers.GET(req);
 }
 
-export async function POST(req: Request, ctx: { params: Promise<{ nextauth: string[] }> }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ nextauth: string[] }> }) {
   if (!isValidAuthRequest(req)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return handlers.POST(req, ctx);
+  return handlers.POST(req);
 }

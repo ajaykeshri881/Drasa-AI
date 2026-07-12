@@ -69,7 +69,7 @@ export class AIGateway {
 
     while (keyIndex < maxRetries) {
       const model = AIRouter.getModel(req.provider, req.modelId, keyIndex);
-      let tools = getGatewayTools(req);
+      let tools: any = getGatewayTools(req);
       
       // Ollama models do not reliably support tools and may throw errors
       if (req.provider === "ollama") {

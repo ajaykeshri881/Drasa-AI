@@ -74,16 +74,18 @@ export function useChatSession({ id, initialMessages = [] }: UseChatSessionProps
   // useChat handles UIMessageStream correctly and resets status natively
   const { messages, status, sendMessage: originalAppend, stop: originalStop, setMessages } = useChat({
     id: chatId,
-    api: '/api/chat',
-    body: {
-      mode: defaultMode,
-      provider: "gemini",
-      modelId: defaultModelId,
-      chatId,
-      isTemporaryChat,
-      isOffline,
-      customInstructions: isCustomInstructionsEnabled ? customInstructions : undefined,
-    },
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: {
+        mode: defaultMode,
+        provider: "gemini",
+        modelId: defaultModelId,
+        chatId,
+        isTemporaryChat,
+        isOffline,
+        customInstructions: isCustomInstructionsEnabled ? customInstructions : undefined,
+      },
+    }),
     onError: (error: Error) => {
       let errorMessage = error.message || "";
       try {
