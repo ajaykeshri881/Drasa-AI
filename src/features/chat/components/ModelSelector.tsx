@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { ChevronDown, Cpu } from "lucide-react";
+import { ChevronDown, Cpu, HelpCircle, Download } from "lucide-react";
 
 interface ModelConfig {
   modelId: string;
@@ -131,12 +131,25 @@ export function ModelSelector({
               <>
                 <div className="h-px bg-border dark:bg-[#33312E] my-1 mx-2" />
                 <a
+                  href="/ollama"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between px-3 py-2 text-[13px] text-muted-foreground hover:text-primary dark:text-[#A3A19C] dark:hover:text-[#C36A4F] hover:bg-accent dark:hover:bg-[#32302D] rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    <span>Setup Local Models...</span>
+                  </div>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary dark:bg-[#C36A4F]/20 dark:text-[#C36A4F]">Guide</span>
+                </a>
+                <a
                   href="https://ollama.com/library"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center px-3 py-2.5 text-[13px] text-muted-foreground hover:text-foreground dark:text-[#A3A19C] dark:hover:text-[#E6E4DF] hover:bg-accent dark:hover:bg-[#32302D] rounded-lg transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-muted-foreground hover:text-foreground dark:text-[#A3A19C] dark:hover:text-[#E6E4DF] hover:bg-accent dark:hover:bg-[#32302D] rounded-lg transition-colors"
                 >
-                  Add more...
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download more models...</span>
                 </a>
               </>
             )}

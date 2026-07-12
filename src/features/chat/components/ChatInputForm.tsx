@@ -73,14 +73,46 @@ export function ChatInputForm({
   useEffect(() => {
     fetch(`/api/models?t=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
-      .then(data => {
+      .then(async (data) => {
         if (Array.isArray(data)) {
-          setAvailableModels(data);
+          let allModels = [...data];
+          
+          // Try to fetch local Ollama models from the browser
+          // This allows users to see their local models even when using the deployed website
+          try {
+            const ollamaRes = await fetch("http://127.0.0.1:11434/api/tags", {
+              method: "GET",
+              signal: AbortSignal.timeout(2000), 
+            });
+            if (ollamaRes.ok) {
+              const ollamaData = await ollamaRes.json();
+              if (ollamaData.models && Array.isArray(ollamaData.models)) {
+                ollamaData.models.forEach((m: any) => {
+                  const modelId = `ollama/${m.name}`;
+                  // Only add if not already added by backend
+                  if (!allModels.some(model => model.modelId === modelId)) {
+                    allModels.push({
+                      modelId: modelId,
+                      name: `${m.name}`,
+                      provider: "ollama",
+                      isPremium: false,
+                      visionSupport: false,
+                      contextWindow: 8192,
+                    });
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            // Ignore - Ollama is either not running locally or CORS is blocking it
+          }
+
+          setAvailableModels(allModels);
           
           // If current default model is no longer available, switch to first available (Standard)
-          if (data.length > 0 && !data.some(m => m.modelId === defaultModelId)) {
-            const standardModel = data.find(m => m.modelId === "gemini-3.1-flash-lite");
-            setDefaultModelId(standardModel ? standardModel.modelId : data[0].modelId);
+          if (allModels.length > 0 && !allModels.some(m => m.modelId === defaultModelId)) {
+            const standardModel = allModels.find(m => m.modelId === "gemini-3.1-flash-lite");
+            setDefaultModelId(standardModel ? standardModel.modelId : allModels[0].modelId);
           }
         }
       })

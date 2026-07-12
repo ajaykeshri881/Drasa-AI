@@ -18,6 +18,7 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
     "/refund",
     "/disclaimer",
     "/share",
+    "/ollama",
   ];
   
   const isNoLayoutPage = pathname.startsWith("/admin") || pathname.startsWith("/share") || noLayoutPaths.some(path => pathname === path || pathname.startsWith(path + "/"));
