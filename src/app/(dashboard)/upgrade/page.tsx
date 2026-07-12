@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Check, Shield, Loader2, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -65,6 +65,27 @@ export default function UpgradePage() {
   const { data: session, update } = useSession();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [pricing, setPricing] = useState({ free: 0, pro: 399, ultimate: 999 });
+
+  useEffect(() => {
+    async function fetchPricing() {
+      try {
+        const res = await fetch("/api/config/pricing");
+        if (res.ok) {
+          const data = await res.json();
+          setPricing(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch dynamic pricing", e);
+      }
+    }
+    fetchPricing();
+  }, []);
+
+  const dynamicTiers = PRICING_TIERS.map(tier => ({
+    ...tier,
+    price: pricing[tier.id as keyof typeof pricing] ?? tier.price
+  }));
 
   const handleUpgrade = async (tier: typeof PRICING_TIERS[0]) => {
     if (!session) {
@@ -166,8 +187,8 @@ export default function UpgradePage() {
 
           {/* Auto-pay is enabled by default as this is a subscription service */}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 max-w-6xl mx-auto">
-            {PRICING_TIERS.map((tier) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+            {dynamicTiers.map((tier) => (
               <div 
                 key={tier.id}
                 className={`flex flex-col h-full relative bg-card dark:bg-[#2A2928]/60 backdrop-blur-xl border rounded-2xl p-6 transition-all duration-500 hover:-translate-y-1 group overflow-hidden ${

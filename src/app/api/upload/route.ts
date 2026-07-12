@@ -113,8 +113,13 @@ export async function POST(req: Request) {
 
     await User.findByIdAndUpdate(session.user.id, updateQuery);
 
+    const quotaUsedPercent = Math.min(100, Math.round(((effectiveBytesToday + file.size) / maxDailyUploadBytes) * 100));
+    const quotaRemainingMB = Math.max(0, (maxDailyUploadBytes - (effectiveBytesToday + file.size)) / 1024 / 1024).toFixed(2);
+
     return NextResponse.json({
       success: true,
+      quotaUsedPercent,
+      quotaRemainingMB,
       file: {
         url: uploadResult.secure_url,
         name: file.name,

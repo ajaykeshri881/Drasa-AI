@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { auth } from "@/features/auth/lib/auth";
 import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
@@ -98,9 +99,16 @@ export async function GET() {
     const errorRate = totalJobs > 0 ? `${((totalFailed / totalJobs) * 100).toFixed(2)}%` : "0.00%";
 
     // System service statuses
+    let mongoStatus = "down";
+    if (mongoose.connection.readyState === 1) {
+      mongoStatus = "operational";
+    } else if (mongoose.connection.readyState === 2) {
+      mongoStatus = "degraded"; // connecting
+    }
+
     const services = [
-      { name: "AI Gateway", status: "operational" },
-      { name: "MongoDB", status: "operational" },
+      { name: "Backend API", status: "operational" }, // If this route runs, backend is up
+      { name: "MongoDB", status: mongoStatus },
       { name: "Auth Service", status: "operational" },
       { name: "Payment Gateway", status: "operational" },
       { name: "Redis Cache", status: redisStatus },

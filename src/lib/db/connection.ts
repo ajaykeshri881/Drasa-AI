@@ -3,7 +3,9 @@ import mongoose from "mongoose";
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  console.warn("⚠️ MONGODB_URI is not defined in the environment variables. Database operations will fail if executed.");
+  console.warn(
+    "⚠️ MONGODB_URI is not defined in the environment variables. Database operations will fail if executed."
+  );
 }
 
 /**
@@ -27,13 +29,18 @@ export async function connectDB() {
   }
 
   if (!cached.promise) {
-    const opts = {
+    const opts: mongoose.ConnectOptions = {
       bufferCommands: false,
+      family: 4,
+      // Fail fast instead of waiting 30 seconds for Atlas to respond
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
+      connectTimeoutMS: 10000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
       console.log("🟢 Successfully connected to MongoDB");
-      return mongoose;
+      return mongooseInstance;
     });
   }
 

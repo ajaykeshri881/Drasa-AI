@@ -1,10 +1,11 @@
 import { GatewayRequest } from "./types";
+import crypto from "crypto";
 
 export class GatewayPersistence {
   public static async setChatStatus(req: GatewayRequest, status: "generating" | "completed" | "failed") {
-    if (req.isTemporaryChat) return;
+    if (req.isTemporaryChat || req.isOffline) return;
     try {
-      const { Chat } = await import('../../db/models/Chat');
+      const { Chat, Message } = await import('../../db/models/Chat');
       const { connectDB } = await import('../../db/connection');
       await connectDB();
 
@@ -13,7 +14,8 @@ export class GatewayPersistence {
 
       const existingChat = await Chat.findById(chatId);
       if (!existingChat) {
-        const title = req.messages.find(m => m.role === "user")?.content.slice(0, 40) || "New Chat";
+        const raw = req.messages.find(m => m.role === "user")?.content;
+        const title = (typeof raw === "string" ? raw : Array.isArray(raw) ? ((raw as any[]).find((p: any) => p.type === 'text')?.text ?? "New Chat") : "New Chat").slice(0, 40);
         await Chat.create({
           _id: chatId,
           userId,
@@ -26,12 +28,46 @@ export class GatewayPersistence {
       } else {
         await Chat.findByIdAndUpdate(chatId, { status, updatedAt: new Date() });
       }
+
+      // Save user message immediately to prevent empty chats on crash
+      const lastUserMsg = req.messages.filter(m => m.role === 'user').pop();
+      if (lastUserMsg) {
+        const userMsgId = lastUserMsg.id || crypto.randomUUID();
+        
+        let textContent = "";
+        if (typeof lastUserMsg.content === 'string') {
+          textContent = lastUserMsg.content;
+        } else if (Array.isArray(lastUserMsg.content)) {
+          const textPart = (lastUserMsg.content as any[]).find((p: any) => p.type === 'text');
+          if (textPart) textContent = textPart.text;
+        }
+        
+        await Message.findOneAndUpdate(
+          { _id: userMsgId },
+          { 
+            $set: {
+              chatId, 
+              role: 'user', 
+              content: textContent,
+              model: req.modelId,
+              attachments: req.hasAttachments && (lastUserMsg as any).experimental_attachments ? (lastUserMsg as any).experimental_attachments.map((a: any) => ({
+                url: a.url,
+                type: a.contentType?.includes('image') ? 'image' : 'file',
+                name: a.name || 'attachment'
+              })) : undefined
+            }
+          },
+          { upsert: true }
+        );
+      }
     } catch (e) {
       console.error("Failed to update chat status:", e);
     }
   }
 
   public static async handleStreamFinish(req: GatewayRequest, event: any) {
+    if (req.isOffline) return;
+    
     if (!req.isTemporaryChat) {
       try {
         const { Chat, Message } = await import('../../db/models/Chat');
@@ -43,7 +79,8 @@ export class GatewayPersistence {
         
         const existingChat = await Chat.findById(chatId);
         if (!existingChat) {
-          const title = req.messages.find(m => m.role === "user")?.content.slice(0, 40) || "New Chat";
+          const raw = req.messages.find(m => m.role === "user")?.content;
+          const title = (typeof raw === "string" ? raw : Array.isArray(raw) ? ((raw as any[]).find((p: any) => p.type === 'text')?.text ?? "New Chat") : "New Chat").slice(0, 40);
           await Chat.create({
             _id: chatId,
             userId,
@@ -59,14 +96,23 @@ export class GatewayPersistence {
 
         const lastUserMsg = req.messages.filter(m => m.role === 'user').pop();
         if (lastUserMsg) {
-          const userMsgId = lastUserMsg.id || `${chatId}_user_${Date.now()}`;
+          const userMsgId = lastUserMsg.id || crypto.randomUUID();
+          
+          let textContent = "";
+          if (typeof lastUserMsg.content === 'string') {
+            textContent = lastUserMsg.content;
+          } else if (Array.isArray(lastUserMsg.content)) {
+            const textPart = (lastUserMsg.content as any[]).find((p: any) => p.type === 'text');
+            if (textPart) textContent = textPart.text;
+          }
+
           await Message.findOneAndUpdate(
             { _id: userMsgId },
             { 
               $set: {
                 chatId, 
                 role: 'user', 
-                content: lastUserMsg.content,
+                content: textContent,
                 model: req.modelId,
                 attachments: req.hasAttachments && (lastUserMsg as any).experimental_attachments ? (lastUserMsg as any).experimental_attachments.map((a: any) => ({
                   url: a.url,
@@ -79,7 +125,7 @@ export class GatewayPersistence {
           );
         }
 
-        const assistantMsgId = `${chatId}_asst_${Date.now()}`;
+        const assistantMsgId = crypto.randomUUID();
         await Message.create({
           _id: assistantMsgId,
           chatId,
@@ -88,7 +134,7 @@ export class GatewayPersistence {
           model: req.modelId,
           toolCalls: event.toolCalls,
           toolResults: event.toolResults,
-          tokensUsed: event.usage?.totalTokens || 0
+          tokensUsed: req.provider === 'ollama' ? 0 : (event.usage?.totalTokens || 0)
         });
         
         await Chat.findByIdAndUpdate(chatId, { updatedAt: new Date() });
@@ -104,18 +150,18 @@ export class GatewayPersistence {
         await connectDB();
         await User.findByIdAndUpdate(req.userId, {
           $inc: { 
-            'usage.messagesUsedToday': 1,
-            'usage.tokensUsedToday': event.usage?.totalTokens || 0,
-            'usage.messagesUsedThisMonth': 1,
-            'usage.tokensUsedThisMonth': event.usage?.totalTokens || 0,
-            'usage.filesUsedToday': req.hasAttachments ? 1 : 0
+            'usage.messagesUsedToday': req.provider === 'ollama' ? 0 : 1,
+            'usage.tokensUsedToday': req.provider === 'ollama' ? 0 : (event.usage?.totalTokens || 0),
+            'usage.messagesUsedThisMonth': req.provider === 'ollama' ? 0 : 1,
+            'usage.tokensUsedThisMonth': req.provider === 'ollama' ? 0 : (event.usage?.totalTokens || 0),
+            'usage.filesUsedToday': req.hasAttachments && req.provider !== 'ollama' ? 1 : 0
           }
         });
       } catch (e) {
         console.error('Failed to update user usage:', e);
       }
 
-      if (!req.isTemporaryChat) {
+      if (!req.isTemporaryChat && event.text && event.text.length >= 150) {
         try {
           const { enqueueMemoryExtraction } = await import('../../queue/producers');
           await enqueueMemoryExtraction({
@@ -139,8 +185,8 @@ export class GatewayPersistence {
           { ip: req.ip },
           {
             $inc: {
-              'tokensUsedThisMonth': event.usage?.totalTokens || 0,
-              'tokensUsedToday': event.usage?.totalTokens || 0
+              'tokensUsedThisMonth': req.provider === 'ollama' ? 0 : (event.usage?.totalTokens || 0),
+              'tokensUsedToday': req.provider === 'ollama' ? 0 : (event.usage?.totalTokens || 0)
             }
           },
           { upsert: true }

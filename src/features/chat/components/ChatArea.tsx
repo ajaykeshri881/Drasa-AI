@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Message } from "ai/react";
+import type { UIMessage } from 'ai';
+
 import { MessageBubble } from "./MessageBubble";
 import { EyeOff, Share2, Globe } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -12,7 +13,8 @@ import { ThinkingIndicator } from "./ThinkingIndicator";
 import { ShareDialog } from "./ShareDialog";
 
 interface ChatAreaProps {
-  messages: Message[];
+  messages: UIMessage[];
+
   isLoading: boolean;
   onSuggestionClick?: (suggestion: string) => void;
   onViewArtifact?: (code: string) => void;
@@ -119,7 +121,7 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
   if (isLoading && messages.length > 0) {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role === 'assistant') {
-      if (lastMsg.content) {
+      if ((lastMsg as any).content) {
         showLoadingIndicator = false;
       } else {
         const toolParts = (lastMsg as any).parts

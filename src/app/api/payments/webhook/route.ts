@@ -49,9 +49,12 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // Extend plan expiry by 30 days
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + 30);
+        // Extend plan expiry to match subscription current_end
+        let expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30); // fallback
+        if (subscriptionEntity.current_end) {
+          expiryDate = new Date(subscriptionEntity.current_end * 1000);
+        }
 
         await User.updateOne(
           { _id: user._id },

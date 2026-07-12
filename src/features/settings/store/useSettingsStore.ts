@@ -22,7 +22,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       defaultMode: "chat",
-      defaultModelId: "nvidia/nemotron-3-ultra-550b-a55b:free",
+      defaultModelId: "gemini-3.1-flash-lite",
       customInstructions: "",
       isCustomInstructionsEnabled: true,
       theme: "system",
@@ -36,6 +36,14 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'drasa-settings-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          if (!state.defaultModelId?.startsWith('gemini-')) {
+            useSettingsStore.setState({ defaultModelId: 'gemini-3.1-flash-lite' });
+          }
+        }
+      },
     }
   )
 );
+

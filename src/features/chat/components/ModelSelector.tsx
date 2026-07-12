@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { ChevronDown, Cpu } from "lucide-react";
 
 interface ModelConfig {
@@ -29,6 +29,14 @@ export function ModelSelector({
   getModelLabel
 }: ModelSelectorProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -59,28 +67,80 @@ export function ModelSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-card dark:bg-[#2A2928] border border-border dark:border-[#33312E] rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          {visibleModels.map((model) => (
-            <button
-              key={model.modelId}
-              type="button"
-              onClick={() => {
-                setDefaultModelId(model.modelId);
-                setIsOpen(false);
-              }}
-              className={`w-full flex flex-col items-start px-3 py-2.5 rounded-lg transition-colors ${
-                defaultModelId === model.modelId 
-                  ? "bg-primary/5 dark:bg-[#C36A4F]/10 border border-primary/20 dark:border-[#C36A4F]/20" 
-                  : "hover:bg-accent dark:hover:bg-[#32302D] border border-transparent"
-              }`}
-            >
-              <div className="flex items-center justify-between w-full mb-0.5">
-                <span className={`text-[13px] font-semibold ${defaultModelId === model.modelId ? "text-primary dark:text-[#C36A4F]" : "text-foreground dark:text-[#E6E4DF]"}`}>
-                  {getModelLabel(model.modelId)}
-                </span>
-              </div>
-            </button>
-          ))}
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-card dark:bg-[#2A2928] border border-border dark:border-[#33312E] rounded-xl shadow-xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="max-h-[300px] overflow-y-auto p-1 scrollbar-thin">
+            {visibleModels.filter(m => m.provider !== 'ollama').map((model) => (
+              <button
+                key={model.modelId}
+                type="button"
+                onClick={() => {
+                  setDefaultModelId(model.modelId);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex flex-col items-start px-3 py-2.5 rounded-lg transition-colors ${
+                  defaultModelId === model.modelId 
+                    ? "bg-primary/5 dark:bg-[#C36A4F]/10 border border-primary/20 dark:border-[#C36A4F]/20" 
+                    : "hover:bg-accent dark:hover:bg-[#32302D] border border-transparent"
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-0.5">
+                  <span className={`text-[13px] font-semibold ${defaultModelId === model.modelId ? "text-primary dark:text-[#C36A4F]" : "text-foreground dark:text-[#E6E4DF]"}`}>
+                    {getModelLabel(model.modelId)}
+                  </span>
+                </div>
+              </button>
+            ))}
+
+            {visibleModels.some(m => m.provider === 'ollama') && (
+              <>
+                <div className="h-px bg-border dark:bg-[#33312E] my-1 mx-2" />
+                <div className="px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Ollama
+                </div>
+                {isMobile ? (
+                  <div className="px-3 py-2 text-[12px] text-muted-foreground dark:text-[#A3A19C] text-center italic">
+                    Ollama is not available on phones, use it on a laptop.
+                  </div>
+                ) : (
+                  visibleModels.filter(m => m.provider === 'ollama').map((model) => (
+                    <button
+                      key={model.modelId}
+                      type="button"
+                      onClick={() => {
+                        setDefaultModelId(model.modelId);
+                        setIsOpen(false);
+                      }}
+                      className={`w-full flex flex-col items-start px-3 py-2.5 rounded-lg transition-colors ${
+                        defaultModelId === model.modelId 
+                          ? "bg-primary/5 dark:bg-[#C36A4F]/10 border border-primary/20 dark:border-[#C36A4F]/20" 
+                          : "hover:bg-accent dark:hover:bg-[#32302D] border border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-0.5">
+                        <span className={`text-[13px] font-semibold ${defaultModelId === model.modelId ? "text-primary dark:text-[#C36A4F]" : "text-foreground dark:text-[#E6E4DF]"}`}>
+                          {getModelLabel(model.modelId)}
+                        </span>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </>
+            )}
+
+            {!isMobile && (
+              <>
+                <div className="h-px bg-border dark:bg-[#33312E] my-1 mx-2" />
+                <a
+                  href="https://ollama.com/library"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center px-3 py-2.5 text-[13px] text-muted-foreground hover:text-foreground dark:text-[#A3A19C] dark:hover:text-[#E6E4DF] hover:bg-accent dark:hover:bg-[#32302D] rounded-lg transition-colors"
+                >
+                  Add more...
+                </a>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

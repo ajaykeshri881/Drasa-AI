@@ -1,6 +1,7 @@
 import React, { useState, KeyboardEvent, useEffect, useRef } from "react";
-import { Zap, Square } from "lucide-react";
-import { Message } from "ai/react";
+import { Send, Square } from "lucide-react";
+import type { UIMessage } from 'ai';
+
 import { VoiceModeOverlay } from "./VoiceModeOverlay";
 import { useSettingsStore } from "@/features/settings/store/useSettingsStore";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { AttachmentPreview } from "./AttachmentPreview";
 import { ModeSelector } from "./ModeSelector";
 import { ModelSelector } from "./ModelSelector";
 import { InputActions } from "./InputActions";
+import { DEFAULT_MODEL_CONFIGS } from "@/lib/ai/gemini-config/models";
 
 interface UploadedFile {
   url: string;
@@ -19,6 +21,8 @@ interface UploadedFile {
   size: number;
   id?: string;
   progress?: number;
+  loadedBytes?: number;
+  totalBytes?: number;
 }
 
 interface ModelConfig {
@@ -35,7 +39,8 @@ interface ChatInputFormProps {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>, options?: any) => void;
   isLoading: boolean;
   stop: () => void;
-  messages: Message[];
+  messages: UIMessage[];
+
   append: (message: any, options?: any) => Promise<string | null | undefined>;
   setInput?: (input: string) => void;
 }
@@ -63,16 +68,24 @@ export function ChatInputForm({
   const recognitionRef = useRef<any>(null);
   const { data: session } = useSession();
   
-  const [availableModels, setAvailableModels] = useState<ModelConfig[]>([]);
+  const [availableModels, setAvailableModels] = useState<ModelConfig[]>(DEFAULT_MODEL_CONFIGS);
 
   useEffect(() => {
-    fetch('/api/models')
+    fetch(`/api/models?t=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setAvailableModels(data);
+        if (Array.isArray(data)) {
+          setAvailableModels(data);
+          
+          // If current default model is no longer available, switch to first available (Standard)
+          if (data.length > 0 && !data.some(m => m.modelId === defaultModelId)) {
+            const standardModel = data.find(m => m.modelId === "gemini-3.1-flash-lite");
+            setDefaultModelId(standardModel ? standardModel.modelId : data[0].modelId);
+          }
+        }
       })
       .catch(err => console.error("Failed to fetch models", err));
-  }, []);
+  }, [defaultModelId, setDefaultModelId]);
 
   const userPlan = session?.user?.plan || "free";
   
@@ -80,17 +93,8 @@ export function ChatInputForm({
 
   const getModelLabel = (id: string) => {
     const m = availableModels.find(m => m.modelId === id);
-    if (!m) return "AI Engine";
-    
-    if (m.isPremium) {
-      const premiumModels = availableModels.filter(model => model.isPremium);
-      const index = premiumModels.findIndex(model => model.modelId === id);
-      return index === 0 ? "Advanced AI Engine" : `Advanced AI Engine ${index + 1}`;
-    } else {
-      const standardModels = availableModels.filter(model => !model.isPremium);
-      const index = standardModels.findIndex(model => model.modelId === id);
-      return index === 0 ? "Standard AI Engine" : `Standard AI Engine ${index + 1}`;
-    }
+    if (!m) return "AI";
+    return m.name;
   };
 
   useEffect(() => {
@@ -101,7 +105,7 @@ export function ChatInputForm({
   }, [input]);
 
   const submitMessage = (overrideInput?: string) => {
-    const textToSubmit = overrideInput !== undefined ? overrideInput : input.trim();
+    const textToSubmit = overrideInput !== undefined ? overrideInput : (input || '').trim();
     if (textToSubmit && !isLoading) {
       const attachments = attachedFiles.map(f => ({
         url: f.url,
@@ -114,9 +118,9 @@ export function ChatInputForm({
         content: textToSubmit,
         experimental_attachments: attachments.length > 0 ? attachments : undefined
       }, {
-        data: {
+        body: {
           mode: defaultMode,
-          provider: defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
+          provider: 'gemini',
           modelId: defaultModelId,
           hasAttachments: attachedFiles.length > 0,
           attachments: attachedFiles,
@@ -159,7 +163,9 @@ export function ChatInputForm({
         mimeType: file.type,
         size: file.size,
         id: tempId,
-        progress: 0
+        progress: 0,
+        loadedBytes: 0,
+        totalBytes: file.size
       };
       
       setAttachedFiles(prev => [...prev, tempFile]);
@@ -176,7 +182,7 @@ export function ChatInputForm({
             if (event.lengthComputable) {
               const percentComplete = Math.round((event.loaded / event.total) * 100);
               setAttachedFiles(prev => prev.map(f => 
-                f.id === tempId ? { ...f, progress: percentComplete } : f
+                f.id === tempId ? { ...f, progress: percentComplete, loadedBytes: event.loaded, totalBytes: event.total } : f
               ));
             }
           };
@@ -187,7 +193,13 @@ export function ChatInputForm({
               setAttachedFiles(prev => prev.map(f => 
                 f.id === tempId ? { ...data.file, id: tempId, progress: 100 } : f
               ));
-              toast.success(`${file.name} attached`);
+              
+              if (data.quotaUsedPercent !== undefined) {
+                toast.success(`${file.name} attached (${data.quotaUsedPercent}% of daily limit used)`);
+              } else {
+                toast.success(`${file.name} attached`);
+              }
+              
               resolve(data);
             } else {
               let errorMsg = `Failed to upload ${file.name}`;
@@ -349,16 +361,19 @@ export function ChatInputForm({
                 isRecording={isRecording}
                 toggleVoiceInput={toggleVoiceInput}
                 setIsVoiceModeActive={setIsVoiceModeActive}
+                hideUpload={defaultModelId?.startsWith("ollama/")}
               />
               
               <div className="flex items-center gap-2 relative">
-                <ModeSelector 
-                  defaultMode={defaultMode}
-                  setDefaultMode={setDefaultMode}
-                  isOpen={isModeSelectorOpen}
-                  setIsOpen={setIsModeSelectorOpen}
-                  closeModelSelector={() => setIsModelSelectorOpen(false)}
-                />
+                {!defaultModelId?.startsWith("ollama/") && (
+                  <ModeSelector 
+                    defaultMode={defaultMode}
+                    setDefaultMode={setDefaultMode}
+                    isOpen={isModeSelectorOpen}
+                    setIsOpen={setIsModeSelectorOpen}
+                    closeModelSelector={() => setIsModelSelectorOpen(false)}
+                  />
+                )}
 
                 <ModelSelector 
                   visibleModels={visibleModels}
@@ -372,20 +387,25 @@ export function ChatInputForm({
                 
                 <button 
                   type="submit"
-                  disabled={!input.trim() || isLoading || isUploading}
+                  disabled={!(input || '').trim() || isLoading || isUploading}
                   className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
-                    input.trim() && !isLoading && !isUploading
+                    (input || '').trim() && !isLoading && !isUploading
                       ? 'bg-primary dark:bg-[#C36A4F] text-white hover:bg-primary/90 shadow-lg scale-105' 
                       : 'bg-muted dark:bg-[#363532] text-muted-foreground dark:text-[#73726E] cursor-not-allowed'
                   }`}
                 >
-                  <Zap size={18} className={input.trim() && !isLoading ? "fill-current" : ""} />
+                  <Send size={18} className={(input || '').trim() && !isLoading ? "fill-current" : ""} />
                 </button>
               </div>
             </div>
           </div>
           
           <div className="text-center mt-3">
+            {defaultModelId?.startsWith("ollama/") && (defaultModelId.includes(":cloud") || defaultModelId.includes(":model") || defaultModelId.toLowerCase().includes("cloud")) && (
+              <p className="text-[11px] text-yellow-600 dark:text-yellow-500/80 mb-1.5 font-medium">
+                Note: This is an Ollama Cloud model. It depends on your external API limits, please check your provider.
+              </p>
+            )}
             <p className="text-[11px] text-[#73726E]">Drasa AI can make mistakes. Please verify important info.</p>
           </div>
         </form>
@@ -393,3 +413,4 @@ export function ChatInputForm({
     </div>
   );
 }
+

@@ -80,6 +80,38 @@ export async function processEmbedding(job: Job<EmbeddingJobData>): Promise<any>
             },
             { upsert: true, new: true }
         );
+
+        // Step 2.5: Store in Pinecone
+        if (embedding && embedding.length > 0) {
+            try {
+                const { Pinecone } = await import('@pinecone-database/pinecone');
+                const pineconeKey = process.env.PINECONE_API_KEY;
+                const indexName = process.env.PINECONE_INDEX || "drasa-ai-memories";
+                
+                if (pineconeKey) {
+                    const pineconeClient = new Pinecone({ apiKey: pineconeKey });
+                    const index = pineconeClient.Index(indexName);
+                    
+                    await index.upsert([
+                        {
+                            id: chunkId,
+                            values: embedding,
+                            metadata: {
+                                userId,
+                                documentId,
+                                content: text.substring(0, 2000),
+                                category: "document_chunk",
+                                createdAt: Date.now(),
+                            }
+                        }
+                    ]);
+                    console.log(`[Job ${job.id}] Successfully upserted chunk ${chunkId} to Pinecone.`);
+                }
+            } catch (pineconeErr: any) {
+                console.warn(`[Job ${job.id}] Could not persist to Pinecone:`, pineconeErr.message);
+            }
+        }
+
     } catch (dbError: any) {
         console.warn(`[Job ${job.id}] Could not persist embedding to DB:`, dbError.message);
         // Non-fatal — the embedding was still generated

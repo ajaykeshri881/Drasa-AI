@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Mic, X, Loader2, AudioLines } from 'lucide-react';
-import { Message } from 'ai/react';
+import type { UIMessage } from 'ai';
+
 import { toast } from 'sonner';
 
 interface VoiceModeOverlayProps {
   onClose: () => void;
   append: (message: any, options?: any) => Promise<string | null | undefined>;
   isLoading: boolean;
-  messages: Message[];
+  messages: UIMessage[];
+
   defaultMode: string;
   defaultModelId: string;
 }
@@ -129,12 +131,12 @@ export function VoiceModeOverlay({
         const text = prev.trim();
         if (text) {
           setVoiceState('thinking');
-          append(
+            append(
             { role: 'user', content: text },
             {
-              data: {
+              body: {
                 mode: defaultMode,
-                provider: defaultModelId.includes('gemini') ? 'gemini' : 'openrouter',
+                provider: 'gemini',
                 modelId: defaultModelId,
                 hasAttachments: false,
                 attachments: [],
@@ -173,7 +175,8 @@ export function VoiceModeOverlay({
         setVoiceState('speaking');
 
         // Strip markdown for cleaner speech
-        const plainText = last.content.replace(/[*#_`~]/g, '');
+        const plainText = ((last as any).content || "").replace(/[*#_`~]/g, '');
+
         speak(plainText, () => {
           if (isActiveRef.current) startListening();
         });
@@ -260,3 +263,4 @@ export function VoiceModeOverlay({
     </div>
   );
 }
+

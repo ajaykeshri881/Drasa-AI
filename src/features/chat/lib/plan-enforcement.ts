@@ -2,12 +2,16 @@ import { connectDB } from "@/lib/db/connection";
 import { User } from "@/lib/db/models/User";
 import { AnonymousUsage } from "@/lib/db/models/AnonymousUsage";
 import { getPlanLimits } from "@/lib/config/plans";
+import { getActiveModelConfigs } from "@/lib/ai/config";
 import { NextResponse } from "next/server";
 
 export async function enforcePlanLimits(dbUser: any, userPlan: string, ip: string, requestedModel: string) {
-  const isGeminiRequested = requestedModel.includes("gemini");
-  
+  if (requestedModel?.startsWith("ollama/")) {
+    return null; // Local models bypass all limits
+  }
+
   if (!dbUser) {
+    // --- Anonymous / Guest user enforcement ---
     try {
       await connectDB();
       const limits = getPlanLimits("free");
@@ -40,11 +44,7 @@ export async function enforcePlanLimits(dbUser: any, userPlan: string, ip: strin
         await AnonymousUsage.updateOne({ ip }, { $set: updates });
       }
 
-      const nextDay = new Date(now);
-      nextDay.setDate(now.getDate() + 1);
-      nextDay.setHours(0, 0, 0, 0);
       const resetTomorrow = "tomorrow at midnight";
-      
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       const resetNextMonth = nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
@@ -61,8 +61,24 @@ export async function enforcePlanLimits(dbUser: any, userPlan: string, ip: strin
     return null;
   }
 
-  // Enforce logged-in user limits
+  // --- Logged-in user enforcement ---
   const limits = getPlanLimits(userPlan);
+
+  // Block free-tier users from requesting premium models
+  if (userPlan === "free" && requestedModel) {
+    try {
+      const activeModels = await getActiveModelConfigs();
+      const requestedModelConfig = activeModels.find(m => m.modelId === requestedModel);
+      if (requestedModelConfig?.isPremium) {
+        return NextResponse.json(
+          { error: `The ${requestedModelConfig.name} model is a premium feature. Please upgrade your plan to use it.` },
+          { status: 403 }
+        );
+      }
+    } catch (e) {
+      console.error("Failed to check model tier:", e);
+    }
+  }
 
   // Reset logic
   const now = new Date();
@@ -72,6 +88,7 @@ export async function enforcePlanLimits(dbUser: any, userPlan: string, ip: strin
 
   const lastDailyReset = dbUser.usage?.lastResetDate || new Date(0);
   const isNewDay = now.getDate() !== lastDailyReset.getDate() || now.getMonth() !== lastDailyReset.getMonth() || now.getFullYear() !== lastDailyReset.getFullYear();
+  const messagesUsedToday = isNewDay ? 0 : (dbUser.usage?.messagesUsedToday || 0);
   
   if (isNewMonth || isNewDay) {
     const updates: any = {};
@@ -93,6 +110,15 @@ export async function enforcePlanLimits(dbUser: any, userPlan: string, ip: strin
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const resetNextMonth = nextMonth.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
+  // Enforce daily message limit (if plan has a finite limit)
+  if ((limits as any).dailyMessages > 0 && messagesUsedToday >= (limits as any).dailyMessages) {
+    return NextResponse.json(
+      { error: `You have reached your daily message limit of ${(limits as any).dailyMessages} messages on the ${limits.name.toUpperCase()} plan. Your limit will reset tomorrow at midnight.` },
+      { status: 403 }
+    );
+  }
+
+  // Enforce monthly token limit
   if (monthlyTokens >= limits.monthlyTokens) {
     return NextResponse.json({ error: `You have reached your monthly limit of ${limits.monthlyTokens.toLocaleString()} tokens on the ${limits.name.toUpperCase()} plan. Your limit will reset on ${resetNextMonth}. Please upgrade to Premium to continue chatting without interruptions.` }, { status: 403 });
   }

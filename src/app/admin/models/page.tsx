@@ -8,7 +8,7 @@ interface ModelConfig {
   _id?: string;
   modelId: string;
   name: string;
-  provider: "openrouter" | "gemini";
+  provider: "gemini";
   isPremium: boolean;
   isActive: boolean;
   contextWindow: number;
@@ -20,7 +20,7 @@ interface ModelConfig {
 const defaultModel: ModelConfig = {
   modelId: "",
   name: "",
-  provider: "openrouter",
+  provider: "gemini",
   isPremium: false,
   isActive: true,
   contextWindow: 8192,
@@ -172,7 +172,7 @@ export default function AdminModelsPage() {
                       : "bg-muted text-muted-foreground dark:bg-[#33312E] dark:text-[#8A8985]"
                   }`}
                 >
-                  {model.provider === "openrouter" ? <Settings2 size={20} /> : <Cpu size={20} />}
+                  {model.provider === "gemini" ? <Cpu size={20} /> : <Cpu size={20} />}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -261,7 +261,6 @@ export default function AdminModelsPage() {
                       onChange={(e) => setFormData({ ...formData, provider: e.target.value as any })}
                       disabled={!!editingModel} // Don't change provider of existing models usually
                     >
-                      <option value="openrouter">OpenRouter</option>
                       <option value="gemini">Gemini</option>
                     </select>
                   </div>

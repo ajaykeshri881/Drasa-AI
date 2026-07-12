@@ -43,6 +43,14 @@ export async function PATCH(req: Request) {
     if (body.defaultFallbackModelId !== undefined) config.defaultFallbackModelId = body.defaultFallbackModelId;
     if (body.defaultVisionModelId !== undefined) config.defaultVisionModelId = body.defaultVisionModelId;
     if (body.systemPromptBase !== undefined) config.systemPromptBase = body.systemPromptBase;
+    
+    if (body.pricing) {
+      if (!config.pricing) {
+        config.pricing = { proMonthly: 399, ultimateMonthly: 999 };
+      }
+      if (body.pricing.proMonthly !== undefined) config.pricing.proMonthly = Number(body.pricing.proMonthly);
+      if (body.pricing.ultimateMonthly !== undefined) config.pricing.ultimateMonthly = Number(body.pricing.ultimateMonthly);
+    }
 
     await config.save();
 

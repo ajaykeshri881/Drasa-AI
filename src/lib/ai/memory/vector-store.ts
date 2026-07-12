@@ -80,7 +80,7 @@ export async function upsertMemory(
 
     const vector = await generateEmbedding(content);
 
-    // Pinecone SDK typing allows array directly, but to satisfy the UpsertOptions error we can cast
+    // Pinecone SDK v8 expects an object with a records array
     await index.upsert({
       records: [
         {

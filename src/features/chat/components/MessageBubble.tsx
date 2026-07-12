@@ -1,5 +1,6 @@
 import React from "react";
-import { Message } from "ai/react";
+import type { UIMessage } from 'ai';
+
 import Image from "next/image";
 import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,8 @@ import { ToolInvocationCard } from "./bubble/ToolInvocationCard";
 import { MessageActions } from "./bubble/MessageActions";
 
 interface MessageBubbleProps {
-  message: Message;
+  message: UIMessage;
+
   onViewArtifact?: (code: string) => void;
   activeSponsor?: any;
   showSponsorHighlights?: boolean;
@@ -26,7 +28,17 @@ export function MessageBubble({ message, onViewArtifact, activeSponsor, showSpon
     (message as any).toolInvocations ??
     [];
 
-  let displayContent = message.content || "";
+  let displayContent = (message as any).content || "";
+  if ((message as any).parts && Array.isArray((message as any).parts)) {
+    const textParts = (message as any).parts
+      .filter((p: any) => p.type === 'text')
+      .map((p: any) => p.text)
+      .join('');
+    if (textParts) {
+      displayContent = textParts;
+    }
+  }
+
   let thinkingContent = "";
   
   const thinkMatch = displayContent.match(/<think>([\s\S]*?)(?:<\/think>|$)/);
@@ -55,9 +67,10 @@ export function MessageBubble({ message, onViewArtifact, activeSponsor, showSpon
             showSponsorHighlights={showSponsorHighlights} 
           />
 
-          {message.experimental_attachments && message.experimental_attachments.length > 0 && (
+          {((message as any).experimental_attachments && (message as any).experimental_attachments.length > 0) && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {message.experimental_attachments.map((attachment, index) => (
+              {((message as any).experimental_attachments).map((attachment: any, index: number) => (
+
                 <div key={index} className="relative flex items-center gap-2 bg-background/50 dark:bg-[#2A2928]/50 border border-border/30 dark:border-[#33312E] rounded-xl px-3 py-1.5 text-xs overflow-hidden">
                   {attachment.contentType?.startsWith("image/") ? (
                     <Image src={attachment.url} alt={attachment.name || "Image"} width={40} height={40} className="w-10 h-10 rounded object-cover z-10" />

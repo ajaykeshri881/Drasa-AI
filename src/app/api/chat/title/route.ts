@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateText } from "ai";
-import { AIRouter } from "@/lib/ai/gateway/router";
+import { AIRouter } from "@/lib/ai/gemini-config/router";
 import { connectDB } from "@/lib/db/connection";
 import { Chat } from "@/lib/db/models/Chat";
 import { auth } from "@/features/auth/lib/auth";
@@ -14,16 +14,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing messages or chatId" }, { status: 400 });
     }
 
-    // Get a fast, cheap model for title generation
-    const provider = process.env.GOOGLE_GENERATIVE_AI_API_KEY ? "gemini" : "openrouter";
-    const modelId = provider === "gemini" ? "gemini-3.5-flash" : "openai/gpt-4o-mini";
+    // Get a standard model for title generation
+    const provider = "gemini";
+    const modelId = "gemini-3.1-flash-lite";
     
     const model = AIRouter.getModel(provider, modelId);
 
+    const sanitizedMessages = messages.slice(0, 2).map((m: any) => ({
+      role: (m.role === 'user' || m.role === 'assistant' || m.role === 'system') ? m.role : 'user',
+      content: typeof m.content === 'string' ? m.content : (m.parts?.find((p: any) => p.type === 'text')?.text || "")
+    }));
+
     const { text } = await generateText({
-      model,
+      model: model as any,
       system: "You are a helpful assistant. Generate a short, concise title (max 5 words) for the following conversation. Do not use quotes or punctuation in the title. Return ONLY the title string.",
-      messages: messages.slice(0, 2),
+      messages: sanitizedMessages,
     });
 
     const title = text.trim();
@@ -53,3 +58,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to generate title" }, { status: 500 });
   }
 }
+

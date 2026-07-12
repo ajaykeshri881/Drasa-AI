@@ -26,53 +26,48 @@ export async function processMemory(job: Job<MemoryJobData>): Promise<any> {
     let extractedMemories: Array<{ content: string; category: string }> = [];
 
     try {
-        const apiKey = process.env.OPENROUTER_API_KEY;
-        if (!apiKey || apiKey === "your_openrouter_api_key_here") {
-            throw new Error('No OpenRouter API key available for memory extraction');
+        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        if (!apiKey) {
+            throw new Error('No Google API key available for memory extraction');
         }
 
+        const prompt = `You are a comprehensive memory extraction AI. Your task is to analyze the following conversation and extract all important facts, user preferences, rules, or project context that would be helpful to remember for future interactions.
+Be extremely thorough. Extract even minor preferences or contextual details.
+
+Return exactly a JSON array of objects, where each object has:
+- "content": A clear, concise statement of the memory (e.g., "User prefers dark mode", "User is building a React app")
+- "category": Must be one of ["preference", "fact", "rule", "project_context"]
+
+If there is absolutely nothing worth remembering, return []. Do not include any markdown blocks.
+
+Conversation:
+${conversationText}`;
+
         const response = await fetch(
-            `https://openrouter.ai/api/v1/chat/completions`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'meta-llama/llama-3.3-70b-instruct:free',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a data extraction AI. Return ONLY a JSON array of objects with "content" (the memory) and "category" (one of: "preference", "fact", "rule", "project_context"). If nothing is worth remembering, return an empty array []. Do not output any markdown formatting or explanatory text.'
-                        },
-                        {
-                            role: 'user',
-                            content: `Analyze this conversation and extract any important facts, user preferences, rules, or project context that should be remembered for future conversations.\n\nConversation:\n${conversationText}`
-                        }
+                    contents: [
+                        { role: 'user', parts: [{ text: prompt }] }
                     ],
-                    temperature: 0.1,
+                    generationConfig: {
+                        temperature: 0.2,
+                        responseMimeType: "application/json"
+                    }
                 }),
             }
         );
 
         if (response.ok) {
             const data = await response.json();
-            const responseText = data.choices?.[0]?.message?.content || '[]';
+            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
             
-            // Parse the JSON from the response
-            const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                try {
-                    extractedMemories = JSON.parse(jsonMatch[0]);
-                } catch (parseErr) {
-                    console.warn(`[Job ${job.id}] Could not parse AI response as JSON`);
-                }
-            } else {
-                // Attempt raw parse just in case
-                try {
-                    extractedMemories = JSON.parse(responseText);
-                } catch (e) {}
+            try {
+                extractedMemories = JSON.parse(responseText);
+            } catch (parseErr) {
+                console.warn(`[Job ${job.id}] Could not parse AI response as JSON`);
             }
         } else {
             const errText = await response.text();
