@@ -1,4 +1,4 @@
-import { AIProvider } from "./router";
+import { AIProvider } from "../gemini-config/router";
 import { PromptContext } from "../prompts/builder";
 import { AIMode } from "../prompts/modes";
 
@@ -19,5 +19,6 @@ export interface GatewayRequest {
   ip?: string;
   chatId?: string;
   isTemporaryChat?: boolean;
+  isOffline?: boolean;
   abortSignal?: AbortSignal;
 }

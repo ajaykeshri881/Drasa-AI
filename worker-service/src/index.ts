@@ -2,6 +2,12 @@ import { Worker, Job } from 'bullmq';
 import { createRedisConnection } from './queue/config';
 import { DocumentJobData, EmbeddingJobData, MemoryJobData, LongTaskJobData } from './queue/producers';
 
+// Fix for Node.js 18+ "TypeError: fetch failed" (IPv6 timeout issues when calling external APIs)
+import dns from 'node:dns';
+if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+}
+
 // Import processors
 import { processDocument } from './processors/documentProcessor';
 import { processEmbedding } from './processors/embeddingProcessor';

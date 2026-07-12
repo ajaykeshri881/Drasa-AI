@@ -23,6 +23,7 @@ class RedisClient {
         maxRetriesPerRequest: 1,
         connectTimeout: 3000,
         commandTimeout: 3000,
+        family: 4,
       });
 
       RedisClient.instance.on("error", (error) => {

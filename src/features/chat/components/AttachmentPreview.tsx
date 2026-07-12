@@ -9,6 +9,16 @@ interface UploadedFile {
   mimeType: string;
   size: number;
   progress?: number;
+  loadedBytes?: number;
+  totalBytes?: number;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 interface AttachmentPreviewProps {
@@ -26,7 +36,7 @@ export function AttachmentPreview({ files, onRemove }: AttachmentPreviewProps) {
           key={idx}
           className="relative flex items-center gap-2 bg-muted dark:bg-[#2A2928] border border-border/50 dark:border-[#33312E] rounded-xl px-3 py-1.5 text-xs group overflow-hidden"
         >
-          {file.progress !== undefined && file.progress < 100 && (
+          {file.progress !== undefined && file.url.startsWith('blob:') && (
             <div 
               className="absolute left-0 bottom-0 h-full bg-primary/10 dark:bg-[#C36A4F]/20 transition-all duration-300 -z-10"
               style={{ width: `${file.progress}%` }}
@@ -37,11 +47,22 @@ export function AttachmentPreview({ files, onRemove }: AttachmentPreviewProps) {
           ) : (
             <FileText size={14} className="text-primary dark:text-[#C36A4F] z-10" />
           )}
-          <span className="text-foreground/80 dark:text-[#D4D2CD] max-w-[120px] truncate z-10 flex items-center gap-1">
-            {file.name}
-            {file.progress !== undefined && file.progress < 100 && (
-              <span className="text-[10px] text-primary font-medium ml-1 flex items-center gap-1">
-                <Loader2 size={10} className="animate-spin" /> {file.progress}%
+          <span className="text-foreground/80 dark:text-[#D4D2CD] max-w-[150px] truncate z-10 flex items-center gap-1">
+            <span className="truncate">{file.name}</span>
+            {file.url.startsWith('blob:') ? (
+              <span className="text-[10px] text-primary font-medium ml-1 flex items-center gap-1 whitespace-nowrap">
+                <Loader2 size={10} className="animate-spin shrink-0" /> 
+                {file.progress === 100 
+                  ? 'Processing...' 
+                  : (file.loadedBytes !== undefined && file.totalBytes !== undefined
+                      ? `${formatBytes(file.loadedBytes)} / ${formatBytes(file.totalBytes)} (${file.progress}%)`
+                      : `${file.progress}%`
+                    )
+                }
+              </span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-1">
+                ({formatBytes(file.size)})
               </span>
             )}
           </span>

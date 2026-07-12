@@ -24,12 +24,14 @@ export async function POST(req: Request) {
     }
 
     if (autoPay) {
+      const { getPlanPricing } = await import("@/features/payments/lib/razorpay");
+      const planPricing = await getPlanPricing(planId);
       const subscription = await createSubscription(planId);
       return NextResponse.json({
         isSubscription: true,
         id: subscription.id,
-        // Subscriptions don't have an explicit 'amount' field in the same way, 
-        // as amount is defined by the plan, but we can pass it if frontend needs it
+        amount: planPricing.amount,
+        currency: planPricing.currency,
         keyId: process.env.RAZORPAY_KEY_ID
       });
     } else {

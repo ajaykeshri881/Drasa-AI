@@ -15,7 +15,13 @@ export function handleChatError(error: any) {
     } else if (parsed.error) {
       errorMessage = parsed.error;
     }
-  } catch (e) {}
+  } catch (e) {
+    // If not JSON and looks like HTML (e.g., Next.js dev server error overlay), fallback to generic error
+    if (typeof errorMessage === 'string' && (errorMessage.trim().startsWith('<!DOCTYPE html>') || errorMessage.trim().startsWith('<html'))) {
+      console.error("Server returned an HTML error page. Preventing display in UI.");
+      errorMessage = "An unexpected server error occurred.";
+    }
+  }
 
   const errorString = errorMessage.toLowerCase();
 
@@ -50,7 +56,7 @@ export function handleChatError(error: any) {
   }
   
   // 4. Server Rate Limit (Upstash / too many requests from user to our API)
-  if (errorString.includes("too many requests. please try again later") && !errorString.includes("primary:")) {
+  if (errorString.includes("too many requests") && !errorString.includes("primary:")) {
     useChatStore.getState().setLimitError({
       title: "Slow Down",
       message: "You are sending too many requests. Please wait a moment before sending another message.",
@@ -112,10 +118,21 @@ export function handleChatError(error: any) {
   }
 
 
-  // 7. Generic Error
-  toast.error("Chat Error", {
-    description: errorMessage,
-    duration: 5000,
+  // 7. Model Not Found / Deprecated
+  if (errorString.includes("not found") || errorString.includes("not supported") || errorString.includes("not exist")) {
+    toast.error("Model Unavailable", {
+      description: "The selected AI model is currently unavailable or deprecated. Please manually select a different model from the top dropdown.",
+      duration: 6000,
+      icon: React.createElement(AlertTriangle, { className: "text-amber-500" }),
+      className: "border-amber-500/50 bg-amber-500/10",
+    });
+    return;
+  }
+
+  // 8. Generic Error
+  toast.error("Unexpected Error", {
+    description: "An unexpected error occurred while communicating with the AI. Please try again or switch to a different model.",
+    duration: 6000,
     icon: React.createElement(XCircle, { className: "text-red-500" }),
     className: "border-red-500/50 bg-red-500/10",
   });

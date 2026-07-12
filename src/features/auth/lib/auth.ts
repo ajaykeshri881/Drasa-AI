@@ -26,7 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 thinkingMode: false,
                 temporaryChat: false,
                 ttsEnabled: false,
-                defaultModel: "meta-llama/llama-3.3-70b-instruct:free",
+                defaultModel: "gemini-3.1-flash-lite",
               },
               usage: {
                 messagesUsedToday: 0,
@@ -87,3 +87,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+

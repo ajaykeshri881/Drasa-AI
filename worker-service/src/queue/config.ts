@@ -13,7 +13,8 @@ export function createRedisConnection(): Redis {
     }
     return new Redis(url, {
         maxRetriesPerRequest: null, // Required by BullMQ
-        enableReadyCheck: false
+        enableReadyCheck: false,
+        family: 4,
     });
 }
 

@@ -8,6 +8,10 @@ interface SystemConfig {
   defaultFallbackModelId: string;
   defaultVisionModelId: string;
   systemPromptBase: string;
+  pricing: {
+    proMonthly: number;
+    ultimateMonthly: number;
+  };
 }
 
 export default function AdminSettingsPage() {
@@ -15,6 +19,7 @@ export default function AdminSettingsPage() {
     defaultFallbackModelId: "",
     defaultVisionModelId: "",
     systemPromptBase: "",
+    pricing: { proMonthly: 399, ultimateMonthly: 999 },
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,7 +72,15 @@ export default function AdminSettingsPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setConfig((prev) => ({ ...prev, [name]: value }));
+    if (name.startsWith('pricing.')) {
+      const field = name.split('.')[1];
+      setConfig((prev) => ({
+        ...prev,
+        pricing: { ...prev.pricing, [field]: Number(value) }
+      }));
+    } else {
+      setConfig((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   if (isLoading) {
@@ -144,6 +157,45 @@ export default function AdminSettingsPage() {
               placeholder="Keep responses short..."
               className="w-full p-3 rounded-xl border border-border dark:border-[#33312E] bg-background dark:bg-[#1A1918] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-y min-h-[100px]"
             />
+          </div>
+
+
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground dark:text-[#E6E4DF]">
+                Pro Plan Monthly Price (INR)
+              </label>
+              <p className="text-xs text-muted-foreground dark:text-[#8A8985]">
+                Dynamic price displayed on the frontend and charged via Razorpay.
+              </p>
+              <input
+                type="number"
+                name="pricing.proMonthly"
+                value={config.pricing?.proMonthly ?? 399}
+                onChange={handleChange}
+                min={0}
+                className="w-full p-3 rounded-xl border border-border dark:border-[#33312E] bg-background dark:bg-[#1A1918] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground dark:text-[#E6E4DF]">
+                Ultimate Plan Monthly Price (INR)
+              </label>
+              <p className="text-xs text-muted-foreground dark:text-[#8A8985]">
+                Dynamic price displayed on the frontend and charged via Razorpay.
+              </p>
+              <input
+                type="number"
+                name="pricing.ultimateMonthly"
+                value={config.pricing?.ultimateMonthly ?? 999}
+                onChange={handleChange}
+                min={0}
+                className="w-full p-3 rounded-xl border border-border dark:border-[#33312E] bg-background dark:bg-[#1A1918] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                required
+              />
+            </div>
           </div>
 
           <div className="pt-4 flex justify-end">

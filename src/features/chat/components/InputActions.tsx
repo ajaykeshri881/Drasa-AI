@@ -9,6 +9,7 @@ interface InputActionsProps {
   isRecording: boolean;
   toggleVoiceInput: () => void;
   setIsVoiceModeActive: (active: boolean) => void;
+  hideUpload?: boolean;
 }
 
 export function InputActions({
@@ -17,34 +18,39 @@ export function InputActions({
   handleFileUpload,
   isRecording,
   toggleVoiceInput,
-  setIsVoiceModeActive
+  setIsVoiceModeActive,
+  hideUpload
 }: InputActionsProps) {
   return (
     <div className="flex items-center gap-1">
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf,.docx,.txt,.md,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.webm"
-        onChange={handleFileUpload}
-        className="hidden"
-        id="file-upload-input"
-      />
-      <Tooltip>
-        <TooltipTrigger
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className={`p-1.5 rounded-lg transition-colors ${
-            isUploading 
-              ? 'text-primary dark:text-[#C36A4F] animate-pulse cursor-wait' 
-              : 'text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-accent dark:hover:bg-[#363532]'
-          }`}
-        >
-          <Paperclip size={18} />
-        </TooltipTrigger>
-        <TooltipContent>{isUploading ? "Uploading..." : "Attach file (PDF, image, doc)"}</TooltipContent>
-      </Tooltip>
+      {!hideUpload && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.txt,.md,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.webm"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="file-upload-input"
+          />
+          <Tooltip>
+            <TooltipTrigger
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isUploading 
+                  ? 'text-primary dark:text-[#C36A4F] animate-pulse cursor-wait' 
+                  : 'text-muted-foreground hover:text-foreground dark:text-[#8A8985] dark:hover:text-[#E6E4DF] hover:bg-accent dark:hover:bg-[#363532]'
+              }`}
+            >
+              <Paperclip size={18} />
+            </TooltipTrigger>
+            <TooltipContent>{isUploading ? "Uploading..." : "Attach file (PDF, image, doc)"}</TooltipContent>
+          </Tooltip>
+        </>
+      )}
       <Tooltip>
         <TooltipTrigger
           type="button"

@@ -6,10 +6,10 @@ export function getGatewayTools(req: GatewayRequest) {
   return {
     generate_website: tool({
       description: "Generate a fully functional, single-page website using HTML, Tailwind CSS (via CDN), and Vanilla JavaScript. Use this tool when the user asks you to build a website, UI component, or web app.",
-      parameters: z.object({
+      inputSchema: z.object({
         html: z.string().describe("The complete, raw HTML string including the <html>, <head>, and <body> tags."),
       }),
-      execute: async ({ html }) => {
+      execute: async ({ html }: { html: string }) => {
         if (req.userId) {
           try {
             const { User } = await import('../../db/models/User');
@@ -36,10 +36,10 @@ export function getGatewayTools(req: GatewayRequest) {
     }),
     internet_search: tool({
       description: "Search the internet for up-to-date information, news, or factual queries. Use this when you need current knowledge.",
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe("The search query."),
       }),
-      execute: async ({ query }) => {
+      execute: async ({ query }: { query: string }) => {
         try {
           const { search } = await import('duck-duck-scrape');
           const results = await search(query);
@@ -76,11 +76,11 @@ export function getGatewayTools(req: GatewayRequest) {
     }),
     store_memory: tool({
       description: "Save important personal information or preferences about the user to long-term memory. Use this whenever the user explicitly tells you something about themselves, their preferences, or asks you to remember something.",
-      parameters: z.object({
+      inputSchema: z.object({
         content: z.string().describe("The fact or preference to remember about the user."),
         category: z.string().describe("Category of the memory (e.g., 'preference', 'fact', 'contact')").optional()
       }),
-      execute: async ({ content, category }) => {
+      execute: async ({ content, category }: { content: string; category?: string }) => {
         if (!req.userId) return { success: false, message: "User not authenticated." };
         try {
            const { Memory } = await import('../../db/models/Memory');

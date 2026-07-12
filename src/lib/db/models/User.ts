@@ -14,6 +14,7 @@ export interface IUser extends Document {
   locale?: string;
   timezone?: string;
   planExpiryDate?: Date;
+  razorpaySubscriptionId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,7 +33,7 @@ const UserSchema = new Schema<IUser>(
       thinkingMode: { type: Boolean, default: false },
       temporaryChat: { type: Boolean, default: false },
       ttsEnabled: { type: Boolean, default: false },
-      defaultModel: { type: String, default: "meta-llama/llama-3.3-70b-instruct:free" },
+      defaultModel: { type: String, default: "gemini-3.1-flash-lite" },
       showSponsorHighlights: { type: Boolean, default: false },
     },
     usage: {
@@ -52,8 +53,10 @@ const UserSchema = new Schema<IUser>(
     locale: { type: String },
     timezone: { type: String },
     planExpiryDate: { type: Date },
+    razorpaySubscriptionId: { type: String },
   },
   { timestamps: true }
 );
 
 export const User = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+

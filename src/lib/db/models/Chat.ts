@@ -29,6 +29,7 @@ export interface IChat {
   status: "generating" | "completed" | "failed";
   isDeleted: boolean;
   isPublic: boolean;  // whether the chat is publicly shareable
+  isPinned?: boolean;
   sharedAt?: Date;    // when the chat was first made public
   createdAt: Date;
   updatedAt: Date;
@@ -70,6 +71,7 @@ const ChatSchema = new Schema<IChat>(
     status: { type: String, enum: ["generating", "completed", "failed"], default: "completed" },
     isDeleted: { type: Boolean, default: false },
     isPublic: { type: Boolean, default: false, index: true },
+    isPinned: { type: Boolean, default: false },
     sharedAt: { type: Date },
   },
   { timestamps: true }

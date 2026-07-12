@@ -26,6 +26,9 @@ interface ChatState {
   togglePin: (id: string) => void;
   limitError: { title: string; message: string; isUpgrade: boolean } | null;
   setLimitError: (error: { title: string; message: string; isUpgrade: boolean } | null) => void;
+  unsyncedChats: Record<string, any>;
+  queueUnsyncedChat: (chatId: string, payload: any) => void;
+  syncOfflineChats: () => Promise<void>;
   loadChats: () => Promise<void>;
 }
 
@@ -57,9 +60,21 @@ export const useChatStore = create<ChatState>()(
       console.error("Failed to clear chats on server", e)
     );
   },
-  togglePin: (id) => set((state) => ({
-    chats: state.chats.map((c) => c.id === id ? { ...c, isPinned: !c.isPinned } : c)
-  })),
+  togglePin: (id) => {
+    set((state) => {
+      const chat = state.chats.find(c => c.id === id);
+      if (chat) {
+        fetch(`/api/chats/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isPinned: !chat.isPinned })
+        }).catch(e => console.error("Failed to pin chat on server:", e));
+      }
+      return {
+        chats: state.chats.map((c) => c.id === id ? { ...c, isPinned: !c.isPinned } : c)
+      };
+    });
+  },
   limitError: null,
   setLimitError: (error) => set({ limitError: error }),
   loadChats: async () => {
@@ -76,7 +91,7 @@ export const useChatStore = create<ChatState>()(
               title: dbChat.title,
               mode: dbChat.mode,
               updatedAt: new Date(dbChat.updatedAt),
-              isPinned: local?.isPinned || false,
+              isPinned: dbChat.isPinned || false,
               isPublic: dbChat.isPublic || false,
             };
           });
@@ -87,6 +102,29 @@ export const useChatStore = create<ChatState>()(
       console.error("Failed to load chats from DB", e);
     }
   },
+  unsyncedChats: {},
+  queueUnsyncedChat: (chatId, payload) => set((state) => ({
+    unsyncedChats: { ...state.unsyncedChats, [chatId]: payload }
+  })),
+  syncOfflineChats: async () => {
+    const { unsyncedChats } = useChatStore.getState();
+    const chatIds = Object.keys(unsyncedChats);
+    if (chatIds.length === 0) return;
+
+    try {
+      const res = await fetch('/api/chats/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chats: unsyncedChats })
+      });
+      if (res.ok) {
+        set({ unsyncedChats: {} });
+        console.log("Offline chats synced successfully!");
+      }
+    } catch (e) {
+      console.error("Failed to sync offline chats", e);
+    }
+  },
   }),
   {
     name: 'drasa-chat-storage',
@@ -94,7 +132,8 @@ export const useChatStore = create<ChatState>()(
       chats: state.chats,
       activeChatId: state.activeChatId,
       isSidebarOpen: state.isSidebarOpen,
-      isTemporaryChat: state.isTemporaryChat
+      isTemporaryChat: state.isTemporaryChat,
+      unsyncedChats: state.unsyncedChats
     }),
   }
 ));

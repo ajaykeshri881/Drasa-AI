@@ -22,13 +22,17 @@ export interface ISystemConfig extends Document {
   defaultFallbackModelId: string;
   defaultVisionModelId: string;
   systemPromptBase: string; // Addendum instruction for all models
+  pricing: {
+    proMonthly: number; // in INR
+    ultimateMonthly: number; // in INR
+  };
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface IModelConfig extends Document {
   modelId: string; // e.g. 'google/gemini-2.5-pro'
-  provider: "openrouter" | "gemini";
+  provider: "gemini";
   name: string;
   description: string;
   isActive: boolean;
@@ -69,11 +73,15 @@ const AlertSchema = new Schema<IAlert>(
 
 const SystemConfigSchema = new Schema<ISystemConfig>(
   {
-    defaultFallbackModelId: { type: String, default: "meta-llama/llama-3.3-70b-instruct:free" },
-    defaultVisionModelId: { type: String, default: "nvidia/nemotron-nano-12b-v2-vl:free" },
+    defaultFallbackModelId: { type: String, default: "gemini-3.1-flash-lite" },
+    defaultVisionModelId: { type: String, default: "gemini-3.5-flash" },
     systemPromptBase: { 
       type: String, 
       default: "Keep your responses short to medium length unless the user explicitly asks for an in-depth explanation." 
+    },
+    pricing: {
+      proMonthly: { type: Number, default: 399 },
+      ultimateMonthly: { type: Number, default: 999 },
     },
   },
   { timestamps: true }
@@ -82,7 +90,7 @@ const SystemConfigSchema = new Schema<ISystemConfig>(
 const ModelConfigSchema = new Schema<IModelConfig>(
   {
     modelId: { type: String, required: true, unique: true },
-    provider: { type: String, enum: ["openrouter", "gemini"], required: true },
+    provider: { type: String, enum: ["gemini"], required: true },
     name: { type: String, required: true },
     description: { type: String },
     isActive: { type: Boolean, default: true },
@@ -120,3 +128,4 @@ export const Alert = mongoose.models.Alert || mongoose.model<IAlert>("Alert", Al
 export const ModelConfig = mongoose.models.ModelConfig || mongoose.model<IModelConfig>("ModelConfig", ModelConfigSchema);
 export const SystemConfig = mongoose.models.SystemConfig || mongoose.model<ISystemConfig>("SystemConfig", SystemConfigSchema);
 export const SponsorHighlight = mongoose.models.SponsorHighlight || mongoose.model<ISponsorHighlight>("SponsorHighlight", SponsorHighlightSchema);
+

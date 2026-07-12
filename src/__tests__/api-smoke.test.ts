@@ -1,4 +1,4 @@
-import { DEFAULT_MODEL_CONFIGS } from "@/lib/ai/models";
+import { DEFAULT_MODEL_CONFIGS } from "@/lib/ai/gemini-config/models";
 import { isPaidPlanId } from "@/features/payments/lib/razorpay";
 
 jest.mock("@/lib/db/connection", () => ({
@@ -105,8 +105,8 @@ describe("chat API auth boundary", () => {
         messages: [{ role: "user", content: "Hello" }],
         data: {
           mode: "chat",
-          provider: "openrouter",
-          modelId: "meta-llama/llama-3.3-70b-instruct:free",
+          provider: "gemini",
+          modelId: "gemini-3.1-flash-lite",
         },
       }),
     });
@@ -125,9 +125,10 @@ describe('attachment handler', () => {
     const { updatedModelId } = handleAttachments(
       [{ role: 'user', content: 'test' }],
       [{ url: 'test', mimeType: 'image/png', name: 'test.png' }],
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'openrouter'
+      'gemini-3.1-flash-lite',
+      'gemini'
     );
     expect(updatedModelId).toBe('gemini-3.5-flash');
   });
 });
+

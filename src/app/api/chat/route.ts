@@ -13,17 +13,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { messages } = body;
     const mode = body.data?.mode || body.mode;
-    let provider = body.data?.provider || body.provider;
+    let provider: "gemini" | "ollama" = "gemini";
     let modelId = body.data?.modelId || body.modelId;
     const hasAttachments = body.data?.hasAttachments || body.hasAttachments;
     const attachments = body.data?.attachments || [];
     const chatId = body.data?.chatId || body.chatId;
     const isTemporaryChat = body.data?.isTemporaryChat || body.isTemporaryChat || false;
+    const clientCustomInstructions = body.data?.customInstructions || body.customInstructions || "";
+    const isOffline = body.data?.isOffline || body.isOffline || false;
 
-    // Handle Attachments and Model switching
-    const { updatedModelId, updatedProvider } = handleAttachments(messages, attachments, modelId, provider);
+    // Handle Attachments
+    const { updatedModelId } = handleAttachments(messages, attachments, modelId, provider);
     modelId = updatedModelId;
-    provider = updatedProvider;
+
+    let requestedModel = modelId || "gemini-3.1-flash-lite"; // Default to Standard
+    if (requestedModel.startsWith("ollama/")) {
+      provider = "ollama";
+    } else if (!requestedModel.startsWith("gemini-")) {
+      requestedModel = "gemini-3.1-flash-lite";
+    }
 
     // Optional: Get user session for personalization and usage tracking
     let session: any = null;
@@ -33,18 +41,11 @@ export async function POST(req: Request) {
       console.warn("Auth check failed (non-blocking):", authError);
     }
 
-    if (modelId === "meta-llama/llama-3.3-70b-instruct:free" || modelId?.includes("gemma")) {
-      modelId = "openai/gpt-oss-120b:free";
-    }
-    if (modelId === "gemini-2.5-flash") {
-      modelId = "gemini-3.5-flash";
-    }
-    let requestedModel = modelId || "openai/gpt-oss-120b:free";
     let userPlan = session?.user?.plan || "free";
     
     let dbUser: any = null;
     let memoriesText = "";
-    if (session?.user?.email) {
+    if (session?.user?.email && !isOffline) {
       try {
         await connectDB();
         dbUser = await User.findOne({ email: session.user.email });
@@ -63,7 +64,6 @@ export async function POST(req: Request) {
             const semanticMemories = await queryMemories(dbUser._id.toString(), queryText, 5);
             
             const { Memory } = await import('@/lib/db/models/Memory');
-            // Ensure we use the correct type for Mongoose to avoid CastError
             const recentMemories = await Memory.find({ userId: dbUser._id }).sort({ createdAt: -1 }).limit(10);
             
             const combinedMemories = new Map();
@@ -74,9 +74,7 @@ export async function POST(req: Request) {
             
             if (combinedMemories.size > 0) {
               const memoryList = Array.from(combinedMemories.values());
-              memoriesText = "\n\nCRITICAL CONTEXT ABOUT THE USER (Memories):\n" + 
-                memoryList.map((m: any) => `- ${m.content}`).join("\n") +
-                "\n(Use these facts about the user when relevant to the conversation. If asked to remember something new, use the store_memory tool.)";
+              memoriesText = memoryList.map((m: any) => `- ${m.content}`).join("\n");
             }
           }
         }
@@ -84,32 +82,19 @@ export async function POST(req: Request) {
         console.warn("Could not verify user from DB or fetch memories:", e);
       }
     }
-    
-    const isGeminiRequested = requestedModel.includes("gemini");
-    if (userPlan === "free" && isGeminiRequested && !hasAttachments) {
-      modelId = "openai/gpt-oss-120b:free";
-      requestedModel = "openai/gpt-oss-120b:free";
-      provider = "openrouter";
-    }
 
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "unknown";
 
-    const planEnforcementError = await enforcePlanLimits(dbUser, userPlan as string, ip, requestedModel);
-    if (planEnforcementError) {
-      return planEnforcementError;
+    if (!isOffline) {
+      const planEnforcementError = await enforcePlanLimits(dbUser, userPlan as string, ip, requestedModel);
+      if (planEnforcementError) {
+        return planEnforcementError;
+      }
     }
 
     // Guard: Check if required API keys are present
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    if (provider === "openrouter" && (!openRouterKey || openRouterKey === "your_openrouter_api_key_here")) {
-      return NextResponse.json(
-        { error: "OPENROUTER_API_KEY is not configured. Please add it to your .env.local file. Get a key at https://openrouter.ai/keys" },
-        { status: 500 }
-      );
-    }
-
     const geminiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (provider === "gemini" && (!geminiKey || geminiKey.includes("your_google_ai_studio_api_key_here"))) {
+    if (!geminiKey || geminiKey.includes("your_google_ai_studio_api_key_here")) {
       return NextResponse.json(
         { error: "GOOGLE_GENERATIVE_AI_API_KEY is not configured. Please add it to your .env.local file." },
         { status: 500 }
@@ -119,15 +104,18 @@ export async function POST(req: Request) {
     const gatewayRequest: GatewayRequest = {
       messages,
       requestedMode: mode,
-      provider: provider || "openrouter",
-      modelId: modelId || requestedModel,
+      provider: provider,
+      modelId: requestedModel,
       hasAttachments: hasAttachments || false,
       userId: dbUser ? dbUser._id.toString() : session?.user?.id,
       ip,
       chatId: chatId || undefined,
       isTemporaryChat: isTemporaryChat || false,
+      isOffline,
       userContext: {
-        customInstructions: (session?.user?.name ? `Address the user as ${session.user.name}.` : "") + memoriesText,
+        userName: session?.user?.name || undefined,
+        customInstructions: clientCustomInstructions || undefined,
+        userMemories: memoriesText || undefined,
         locale: "en-US",
       },
       abortSignal: req.signal,
@@ -146,3 +134,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

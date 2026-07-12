@@ -1,14 +1,31 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 
-export const PLAN_PRICING = {
-  free: { amount: 0, currency: "INR" },
+import { SystemConfig } from "@/lib/db/models/Admin";
+import { connectDB } from "@/lib/db/connection";
 
-  pro: { amount: 39900, currency: "INR" }, // amount in paise (399.00 INR)
-  ultimate: { amount: 99900, currency: "INR" }, // amount in paise (999.00 INR)
-};
+export type PaidPlanId = "pro" | "ultimate";
 
-export type PaidPlanId = Exclude<keyof typeof PLAN_PRICING, "free">;
+export async function getPlanPricing(planId: PaidPlanId | "free") {
+  if (planId === "free") return { amount: 0, currency: "INR" };
+
+  try {
+    await connectDB();
+    const config = await SystemConfig.findOne();
+    if (config?.pricing) {
+      if (planId === "pro") return { amount: (config.pricing.proMonthly || 399) * 100, currency: "INR" };
+      if (planId === "ultimate") return { amount: (config.pricing.ultimateMonthly || 999) * 100, currency: "INR" };
+    }
+  } catch (error) {
+    console.error("Failed to fetch dynamic pricing from DB, using fallback defaults:", error);
+  }
+
+  // Absolute fallback defaults in paise
+  if (planId === "pro") return { amount: 39900, currency: "INR" };
+  if (planId === "ultimate") return { amount: 99900, currency: "INR" };
+  
+  throw new Error("Invalid plan id");
+}
 
 export function isPaidPlanId(planId: unknown): planId is PaidPlanId {
   return planId === "pro" || planId === "ultimate";
@@ -29,7 +46,7 @@ export function getRazorpayClient() {
 }
 
 export async function createOrder(planId: PaidPlanId) {
-  const plan = PLAN_PRICING[planId];
+  const plan = await getPlanPricing(planId);
   if (!plan || plan.amount === 0) {
     throw new Error("Invalid plan or plan does not require payment.");
   }
@@ -79,9 +96,9 @@ export function verifyWebhookSignature(
   signature: string,
   webhookSecret?: string
 ): boolean {
-  const secret = webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  const secret = webhookSecret || process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!secret) {
-    throw new Error("No webhook secret configured.");
+    throw new Error("No webhook secret configured. Set RAZORPAY_WEBHOOK_SECRET.");
   }
 
   const expectedSignature = crypto
@@ -116,7 +133,7 @@ async function getRazorpayPlanId(planId: PaidPlanId): Promise<string> {
   if (envPlanId) return envPlanId;
 
   const razorpayClient = getRazorpayClient();
-  const planDetails = PLAN_PRICING[planId];
+  const planDetails = await getPlanPricing(planId);
   const planName = `Drasa AI - ${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`;
 
   try {

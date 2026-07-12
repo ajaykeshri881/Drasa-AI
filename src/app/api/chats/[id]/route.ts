@@ -38,7 +38,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
     const formattedMessages = messages.map(msg => {
       let toolInvocations = undefined;
       
-      if (msg.toolCalls && msg.toolResults) {
+      if (msg.toolCalls && msg.toolCalls.length > 0 && msg.toolResults) {
         toolInvocations = msg.toolCalls.map((tc: any, index: number) => {
           const res = msg.toolResults?.[index];
           return {
@@ -51,11 +51,21 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
         });
       }
       
+      let experimental_attachments = undefined;
+      if (msg.attachments && msg.attachments.length > 0) {
+        experimental_attachments = msg.attachments.map((att: any) => ({
+          url: att.url,
+          contentType: att.type === 'image' ? 'image/jpeg' : 'application/pdf',
+          name: att.name || 'Attachment'
+        }));
+      }
+
       return {
         id: msg._id.toString(),
         role: msg.role,
         content: msg.content,
-        toolInvocations
+        toolInvocations,
+        experimental_attachments
       };
     });
 
@@ -93,20 +103,26 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     }
 
     const body = await req.json();
-    const { isPublic } = body;
+    const { isPublic, isPinned } = body;
 
-    if (typeof isPublic !== "boolean") {
-      return NextResponse.json({ error: "isPublic must be a boolean" }, { status: 400 });
+    if (isPublic === undefined && isPinned === undefined) {
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+    }
+
+    const updates: any = {};
+    if (typeof isPublic === "boolean") {
+      updates.isPublic = isPublic;
+      if (isPublic) updates.sharedAt = new Date();
+    }
+    if (typeof isPinned === "boolean") {
+      updates.isPinned = isPinned;
     }
 
     await connectDB();
     const chat = await Chat.findOneAndUpdate(
       { _id: params.id, userId },
       { 
-        $set: { 
-          isPublic,
-          ...(isPublic ? { sharedAt: new Date() } : {}),
-        }
+        $set: updates
       },
       { new: true }
     );
@@ -115,7 +131,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       return NextResponse.json({ error: "Chat not found or unauthorized" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, isPublic: chat.isPublic });
+    return NextResponse.json({ success: true, chat });
   } catch (error: any) {
     console.error("Failed to update chat sharing:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
