@@ -92,19 +92,21 @@ export async function processEmbedding(job: Job<EmbeddingJobData>): Promise<any>
                     const pineconeClient = new Pinecone({ apiKey: pineconeKey });
                     const index = pineconeClient.Index(indexName);
                     
-                    await index.upsert([
-                        {
-                            id: chunkId,
-                            values: embedding,
-                            metadata: {
-                                userId,
-                                documentId,
-                                content: text.substring(0, 2000),
-                                category: "document_chunk",
-                                createdAt: Date.now(),
+                    await index.upsert({
+                        records: [
+                            {
+                                id: chunkId,
+                                values: embedding,
+                                metadata: {
+                                    userId,
+                                    documentId,
+                                    content: text.substring(0, 2000),
+                                    category: "document_chunk",
+                                    createdAt: Date.now(),
+                                }
                             }
-                        }
-                    ]);
+                        ]
+                    });
                     console.log(`[Job ${job.id}] Successfully upserted chunk ${chunkId} to Pinecone.`);
                 }
             } catch (pineconeErr: any) {
