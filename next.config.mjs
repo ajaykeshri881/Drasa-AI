@@ -1,7 +1,18 @@
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Prevent Next.js from trying to bundle server-only packages
   serverExternalPackages: ["mongoose", "ioredis"],
+
+  // Silence Turbopack warning caused by Serwist's webpack config
+  turbopack: {},
 
   images: {
     remotePatterns: [
@@ -47,4 +58,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);

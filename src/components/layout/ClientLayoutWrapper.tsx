@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { MainLayout } from "./MainLayout";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { WifiOff } from "lucide-react";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 export function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
@@ -35,6 +36,7 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
       <>
         {offlineBanner}
         {children}
+        <PwaInstallPrompt />
       </>
     );
   }
@@ -43,6 +45,7 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
     <div className="flex flex-col min-h-screen">
       {offlineBanner}
       <MainLayout>{children}</MainLayout>
+      <PwaInstallPrompt />
     </div>
   );
 }

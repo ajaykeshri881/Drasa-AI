@@ -31,4 +31,14 @@ export const authConfig = {
     signIn: "/login",
     error: "/login",
   },
+  callbacks: {
+    session({ session, token }) {
+      if (token) {
+        if (token.sub) session.user.id = token.sub;
+        if (token.role) session.user.role = token.role as string;
+        if (token.plan) session.user.plan = token.plan as string;
+      }
+      return session;
+    },
+  },
 } satisfies NextAuthConfig;

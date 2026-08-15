@@ -35,6 +35,7 @@ const UserSchema = new Schema<IUser>(
       ttsEnabled: { type: Boolean, default: false },
       defaultModel: { type: String, default: "gemini-3.1-flash-lite" },
       showSponsorHighlights: { type: Boolean, default: false },
+      ollamaEnabled: { type: Boolean, default: false },
     },
     usage: {
       messagesUsedToday: { type: Number, default: 0 },

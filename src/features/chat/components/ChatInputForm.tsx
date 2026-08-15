@@ -55,7 +55,7 @@ export function ChatInputForm({
   append,
   setInput
 }: ChatInputFormProps) {
-  const { defaultMode, setDefaultMode, defaultModelId, setDefaultModelId, enterToSend } = useSettingsStore();
+  const { defaultMode, setDefaultMode, defaultModelId, setDefaultModelId, enterToSend, ollamaEnabled } = useSettingsStore();
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
   const [isModelSelectorOpen, setIsModelSelectorOpen] = useState(false);
   const [isVoiceModeActive, setIsVoiceModeActive] = useState(false);
@@ -75,36 +75,38 @@ export function ChatInputForm({
       .then(res => res.json())
       .then(async (data) => {
         if (Array.isArray(data)) {
-          let allModels = [...data];
+          const allModels = [...data];
           
-          // Try to fetch local Ollama models from the browser
+          // Try to fetch local Ollama models from the browser if enabled
           // This allows users to see their local models even when using the deployed website
-          try {
-            const ollamaRes = await fetch("http://127.0.0.1:11434/api/tags", {
-              method: "GET",
-              signal: AbortSignal.timeout(2000), 
-            });
-            if (ollamaRes.ok) {
-              const ollamaData = await ollamaRes.json();
-              if (ollamaData.models && Array.isArray(ollamaData.models)) {
-                ollamaData.models.forEach((m: any) => {
-                  const modelId = `ollama/${m.name}`;
-                  // Only add if not already added by backend
-                  if (!allModels.some(model => model.modelId === modelId)) {
-                    allModels.push({
-                      modelId: modelId,
-                      name: `${m.name}`,
-                      provider: "ollama",
-                      isPremium: false,
-                      visionSupport: false,
-                      contextWindow: 8192,
-                    });
-                  }
-                });
+          if (ollamaEnabled) {
+            try {
+              const ollamaRes = await fetch("http://localhost:11434/api/tags", {
+                method: "GET",
+                signal: AbortSignal.timeout(2000), 
+              });
+              if (ollamaRes.ok) {
+                const ollamaData = await ollamaRes.json();
+                if (ollamaData.models && Array.isArray(ollamaData.models)) {
+                  ollamaData.models.forEach((m: any) => {
+                    const modelId = `ollama/${m.name}`;
+                    // Only add if not already added by backend
+                    if (!allModels.some(model => model.modelId === modelId)) {
+                      allModels.push({
+                        modelId: modelId,
+                        name: `${m.name}`,
+                        provider: "ollama",
+                        isPremium: false,
+                        visionSupport: false,
+                        contextWindow: 8192,
+                      });
+                    }
+                  });
+                }
               }
+            } catch (e) {
+              // Ignore - Ollama is either not running locally or CORS is blocking it
             }
-          } catch (e) {
-            // Ignore - Ollama is either not running locally or CORS is blocking it
           }
 
           setAvailableModels(allModels);
@@ -117,7 +119,7 @@ export function ChatInputForm({
         }
       })
       .catch(err => console.error("Failed to fetch models", err));
-  }, [defaultModelId, setDefaultModelId]);
+  }, [defaultModelId, setDefaultModelId, ollamaEnabled]);
 
   const userPlan = session?.user?.plan || "free";
   

@@ -6,6 +6,7 @@ import { authConfig } from "./auth.config";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ user, account, profile }) {
       // Only sync to DB if MongoDB is configured
       try {
@@ -76,14 +77,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       
       return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = (token.role as string) || "user";
-        session.user.plan = (token.plan as string) || "free";
-      }
-      return session;
     },
   },
 });
