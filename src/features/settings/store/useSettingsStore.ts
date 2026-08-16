@@ -62,7 +62,7 @@ export const useSettingsStore = create<SettingsState>()(
       name: 'drasa-settings-storage',
       onRehydrateStorage: () => (state) => {
         if (state) {
-          if (!state.defaultModelId?.startsWith('gemini-')) {
+          if (!state.defaultModelId?.startsWith('gemini-') && !state.defaultModelId?.startsWith('ollama/')) {
             useSettingsStore.setState({ defaultModelId: 'gemini-3.1-flash-lite' });
           }
         }
