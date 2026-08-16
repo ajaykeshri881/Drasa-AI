@@ -13,6 +13,7 @@ export interface UserUsage {
 
 export interface UserPreferences {
   showSponsorHighlights: boolean;
+  ollamaEnabled?: boolean;
 }
 
 export interface UserData {

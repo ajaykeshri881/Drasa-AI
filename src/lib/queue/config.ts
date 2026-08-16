@@ -8,14 +8,14 @@ const url = process.env.REDIS_URL;
  * to prevent blocking operations from deadlocking.
  */
 export function createRedisConnection(): Redis {
-    if (!url) {
-      throw new Error("REDIS_URL is not defined in environment variables. Please add it to your .env.local file.");
-    }
-    return new Redis(url, {
-        maxRetriesPerRequest: null, // Required by BullMQ
-        enableReadyCheck: false,
-        family: 4,
-    });
+  if (!url) {
+    throw new Error("REDIS_URL is not defined in environment variables. Please add it to your .env.local file.");
+  }
+  return new Redis(url, {
+    maxRetriesPerRequest: null, // Required by BullMQ
+    enableReadyCheck: false,
+    family: 4,
+  });
 }
 
 /**

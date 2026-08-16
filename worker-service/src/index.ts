@@ -29,7 +29,7 @@ const documentWorker = new Worker<DocumentJobData>(
         console.log(`[DocumentWorker] Processing job ${job.id} for user ${job.data.userId}`);
         return await processDocument(job);
     },
-    { connection: documentConnection, concurrency: 2 }
+    { connection: documentConnection, concurrency: 2, stalledInterval: 300000 }
 );
 
 const memoryWorker = new Worker<MemoryJobData>(
@@ -38,7 +38,7 @@ const memoryWorker = new Worker<MemoryJobData>(
         console.log(`[MemoryWorker] Processing job ${job.id} for chat ${job.data.chatId}`);
         return await processMemory(job);
     },
-    { connection: memoryConnection, concurrency: 5 } // Can handle more concurrent memory extractions
+    { connection: memoryConnection, concurrency: 5, stalledInterval: 300000 } // Can handle more concurrent memory extractions
 );
 
 const longTaskWorker = new Worker<LongTaskJobData>(
@@ -47,7 +47,7 @@ const longTaskWorker = new Worker<LongTaskJobData>(
         console.log(`[LongTaskWorker] Processing task ${job.data.taskType} - job ${job.id}`);
         return await processLongTask(job);
     },
-    { connection: longTaskConnection, concurrency: 2 } // Heavy AI tasks, limit concurrency
+    { connection: longTaskConnection, concurrency: 2, stalledInterval: 300000 } // Heavy AI tasks, limit concurrency
 );
 
 const embeddingWorker = new Worker<EmbeddingJobData>(
@@ -56,7 +56,7 @@ const embeddingWorker = new Worker<EmbeddingJobData>(
         console.log(`[EmbeddingWorker] Processing chunk ${job.data.chunkId} for doc ${job.data.documentId}`);
         return await processEmbedding(job);
     },
-    { connection: embeddingConnection, concurrency: 10 } // Embeddings can usually be batched/concurrent
+    { connection: embeddingConnection, concurrency: 10, stalledInterval: 300000 } // Embeddings can usually be batched/concurrent
 );
 
 // Setup Error and Completion Handlers

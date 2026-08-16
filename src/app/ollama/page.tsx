@@ -73,7 +73,7 @@ export default function OllamaSetupPage() {
               <div>
                 <h3 className="text-white font-medium mb-2">For Windows (Command Prompt):</h3>
                 <div className="bg-black p-4 rounded-lg font-mono text-sm border border-white/10 text-green-400 overflow-x-auto">
-                  set OLLAMA_ORIGINS="https://drasaai.ajaykeshri.com"<br/>
+                  set OLLAMA_ORIGINS="*"<br/>
                   ollama serve
                 </div>
               </div>
@@ -81,7 +81,7 @@ export default function OllamaSetupPage() {
               <div>
                 <h3 className="text-white font-medium mb-2">For Windows (PowerShell):</h3>
                 <div className="bg-black p-4 rounded-lg font-mono text-sm border border-white/10 text-green-400 overflow-x-auto">
-                  $env:OLLAMA_ORIGINS="https://drasaai.ajaykeshri.com"<br/>
+                  $env:OLLAMA_ORIGINS="*"<br/>
                   ollama serve
                 </div>
               </div>
@@ -89,7 +89,7 @@ export default function OllamaSetupPage() {
               <div>
                 <h3 className="text-white font-medium mb-2">For Mac/Linux (Terminal):</h3>
                 <div className="bg-black p-4 rounded-lg font-mono text-sm border border-white/10 text-green-400 overflow-x-auto">
-                  OLLAMA_ORIGINS="https://drasaai.ajaykeshri.com" ollama serve
+                  OLLAMA_ORIGINS="*" ollama serve
                 </div>
               </div>
             </div>
@@ -111,6 +111,22 @@ export default function OllamaSetupPage() {
           <section className="space-y-4 bg-[#111] p-6 md:p-8 rounded-2xl border border-white/5">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-black font-bold">4</div>
+              <h2 className="text-2xl font-semibold">Enable Ollama in Settings</h2>
+            </div>
+            <p className="text-zinc-400 pl-12">
+              Before Drasa AI can fetch your local models, you must enable the integration.
+            </p>
+            <ul className="list-decimal pl-16 text-zinc-300 space-y-2">
+              <li>Click on the <strong>Settings</strong> icon in the Drasa AI sidebar (or your profile dropdown).</li>
+              <li>Navigate to the <strong>Preferences</strong> tab.</li>
+              <li>Toggle the <strong>Enable Ollama Models</strong> switch to ON.</li>
+            </ul>
+          </section>
+
+          {/* Step 5 */}
+          <section className="space-y-4 bg-[#111] p-6 md:p-8 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-black font-bold">5</div>
               <h2 className="text-2xl font-semibold">Use it on Drasa AI!</h2>
             </div>
             <ul className="list-decimal pl-16 text-zinc-300 space-y-2">

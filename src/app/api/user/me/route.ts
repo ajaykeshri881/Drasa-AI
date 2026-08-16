@@ -37,6 +37,7 @@ export async function GET(req: Request) {
         role: currentUser.role,
         usage: currentUser.usage,
         preferences: currentUser.preferences,
+        ttsEnabled: currentUser.ttsEnabled,
         planExpiryDate: currentUser.planExpiryDate,
         razorpaySubscriptionId: currentUser.razorpaySubscriptionId,
       }
@@ -55,16 +56,31 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { preferences } = body;
+    const { preferences, ttsEnabled } = body;
 
-    if (!preferences) {
-      return NextResponse.json({ error: "Preferences data is required" }, { status: 400 });
+    if (!preferences && ttsEnabled === undefined) {
+      return NextResponse.json({ error: "Update data is required" }, { status: 400 });
     }
 
     await connectDB();
+    
+    // Construct the update object based on what was provided
+    const updateObj: any = {};
+    if (preferences) {
+      if (preferences.showSponsorHighlights !== undefined) {
+        updateObj["preferences.showSponsorHighlights"] = preferences.showSponsorHighlights;
+      }
+      if (preferences.ollamaEnabled !== undefined) {
+        updateObj["preferences.ollamaEnabled"] = preferences.ollamaEnabled;
+      }
+    }
+    if (ttsEnabled !== undefined) {
+      updateObj["ttsEnabled"] = ttsEnabled;
+    }
+
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
-      { $set: { "preferences.showSponsorHighlights": preferences.showSponsorHighlights } },
+      { $set: updateObj },
       { new: true }
     ).lean();
 

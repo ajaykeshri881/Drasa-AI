@@ -7,6 +7,7 @@ import { MessageBubble } from "./MessageBubble";
 import { EyeOff, Share2, Globe } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useChatStore } from "@/features/chat/store/useChatStore";
+import { useSettingsStore } from "@/features/settings/store/useSettingsStore";
 import { toast } from "sonner";
 import { EmptyChatScreen } from "./EmptyChatScreen";
 import { ThinkingIndicator } from "./ThinkingIndicator";
@@ -24,6 +25,7 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const { isTemporaryChat, activeChatId, chats } = useChatStore();
+  const { ttsEnabled } = useSettingsStore();
   
   const [hasWarned80, setHasWarned80] = useState(false);
   const [hasWarned90, setHasWarned90] = useState(false);
@@ -96,6 +98,41 @@ export function ChatArea({ messages, isLoading, onSuggestionClick, onViewArtifac
     }
     return () => clearTimeout(timeout);
   }, [isLoading]);
+
+  // Auto-play TTS logic
+  const wasLoadingRef = useRef(isLoading);
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading && ttsEnabled && messages.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'assistant' && (lastMsg as any).content) {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const plainText = (lastMsg as any).content.replace(/[*#_`~]/g, '');
+          const utterance = new SpeechSynthesisUtterance(plainText);
+          
+          const setVoiceAndSpeak = () => {
+            const voices = window.speechSynthesis.getVoices();
+            const indianVoice = voices.find(v => v.lang === 'en-IN')
+              || voices.find(v => v.lang.startsWith('en-IN'))
+              || voices.find(v => v.lang.startsWith('en'));
+            if (indianVoice) utterance.voice = indianVoice;
+            utterance.lang = 'en-IN';
+            window.speechSynthesis.speak(utterance);
+          };
+
+          if (window.speechSynthesis.getVoices().length > 0) {
+            setVoiceAndSpeak();
+          } else {
+            window.speechSynthesis.onvoiceschanged = () => {
+              window.speechSynthesis.onvoiceschanged = null;
+              setVoiceAndSpeak();
+            };
+          }
+        }
+      }
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading, ttsEnabled, messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
